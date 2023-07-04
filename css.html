@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>CSS</title>
+    <style>
+        #chart {
+      max-width: 1200px;
+      margin: 15px auto;
+    }
+    </style>
+        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="~/lib/Font-Awesome/css/fontawesome.min.css">
+        <link rel="stylesheet" href="~/lib/Font-Awesome/css/regular.min.css">
+        <link rel="stylesheet" href="~/lib/Font-Awesome/css/solid.min.css">
+        <script defer src="https://use.fontawesome.com/releases/v5.0.8/js/all.js" integrity="sha384-SlE991lGASHoBfWbelyBPLsUlwY1GwNDJo3jSJO04KZ33K2bwfV9YBauFfnzvynJ" crossorigin="anonymous"></script>
+        <style>
+          #chart {
+            max-width: 1000px;
+            margin: 15px auto;
+                }
+        </style>
+        <style>
+            .img-container {
+                text-align: center;
+            }
+            .topnav {
+                overflow: hidden;
+                background-color: #333;
+                }
+                .topnav a {
+                float: left;
+                color: #f2f2f2;
+                text-align: center;
+                padding: 14px 16px;
+                text-decoration: none;
+                font-size: 17px;
+                }
+                .topnav a:hover {
+                background-color: #ddd;
+                color: black;
+                }
+                .topnav a.active {
+                background-color: #101312;
+                color: rgb(255, 255, 255);
+                }
+            </style>
+    <script>
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+        )
+      window.Promise ||
+        document.write(
+          '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+        )
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script>
+      // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+      // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+      var _seed = 42;
+      Math.random = function() {
+        _seed = _seed * 16807 % 2147483647;
+        return (_seed - 1) / 2147483646;
+      };
+    </script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+  </head>
+
+  <body>
+    <div class="topnav">
+      <a href="index.html">主页</a>
+      <a class='active' href="css.html">中国空间站</a>
+      <a href="astronauts.html">航天员</a>
+      <a href="cmse2030.html">载人登月</a>
+      <a href="tianwen1.html">天问一号</a>
+    </div>
+      <h1 align=center>中国空间站建设</h1>
+     <div id="chart"></div>
+    <script>
+      var currentdate = new Date(); 
+      var datetime = currentdate.getFullYear() + "/"
+                      + (currentdate.getMonth()+1) + "/"
+                      +  currentdate.getDate() + " "
+                      +   
+                      + currentdate.getHours() + ":"  
+                      + currentdate.getMinutes() + ":" 
+                      + currentdate.getSeconds();
+
+		var today = new Date();
+		var dd = String(today.getDate()).padStart(2, '0');
+		var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+		var yyyy = today.getFullYear();
+		var today =yyyy+'-'+ mm + '-' + dd ;
+        var options = {
+          series: [
+          {
+            data: [
+              {
+                x: '天和核心舱',
+                y: [
+                  new Date('2021/04/29 11:23:15').getTime(),
+                  new Date(datetime).getTime()
+                ],
+                fillColor:'#3c7d43'
+              },
+              {
+                x: '天舟二号',
+                y: [
+                  new Date('2021/05/29 20:55:29').getTime(),
+                  new Date('2022/03/31 18:40:15').getTime()
+                ],
+                fillColor: '#f4a500'
+              },
+              {
+                x: '神舟十二号',
+                y: [
+                  new Date('2021/06/17 9:22:00').getTime(),
+                  new Date('2021/09/17 13:34:00').getTime()
+                ],
+                fillColor: '#c1272d'
+              },
+              {
+                x: '天舟三号',
+                y: [
+                  new Date('2021/09/20 15:10:11').getTime(),
+                  new Date('2022/07/27 11:31:00').getTime()
+                ],
+                fillColor: '#f4a500'
+              },
+              {
+                x: '神舟十三号',
+                y: [
+                  new Date('2021/10/16 00:23:26').getTime(),
+                  new Date('2022/04/16 09:56:00').getTime()
+                ],
+                fillColor: '#c1272d'
+              },
+              {
+                x: '天舟四号',
+                y: [
+                  new Date('2022/05/10 01:56:37').getTime(),
+                  new Date('2022/11/15 07:21:00').getTime()
+                ],
+                fillColor: '#f4a500'
+              },
+              {
+                x: '神舟十四号',
+                y: [
+                  new Date('2022/06/05 10:44:10').getTime(),
+                  new Date('2022/12/04 20:09:00').getTime()
+                ],
+                fillColor: '#c1272d'
+              },  
+              {
+                x: '问天实验舱',
+                y: [
+                  new Date('2022/07/24 14:22:23').getTime(),
+                  new Date(datetime).getTime()
+                ],
+                fillColor: '#3c7d43'
+              },
+              {
+                x: '梦天实验舱',
+                y: [
+                  new Date('2022/10/31 15:37:23').getTime(),
+                  new Date(datetime).getTime()
+                ],
+                fillColor: '#3c7d43'
+              },
+              {
+                x: '天舟五号',
+                y: [
+                  new Date('2022/11/12 10:03:12').getTime(),
+                  new Date(datetime).getTime()
+                ],
+                fillColor: '#f4a500'
+              },
+              {
+                x: '神舟十五号',
+                y: [
+                  new Date('2022/11/29 23:08:17').getTime(),
+                  new Date('2023/06/04 06:32:58').getTime()
+                ],
+                fillColor: '#c1272d'
+              },
+              {
+                x: '天舟六号',
+                y: [
+                  new Date('2023/05/10 21:22:51').getTime(),
+                  new Date(datetime).getTime()
+                ],
+                fillColor: '#f4a500'
+              },
+              {
+                x: '神舟十六号',
+                y: [
+                  new Date('2023/05/30 09:31:13').getTime(),
+                  new Date(datetime).getTime()
+                ],
+                fillColor: '#c1272d'
+              },                       
+            ]
+          }
+        ],
+          chart: {
+          height: 600,
+          type: 'rangeBar'
+        },
+        plotOptions: {
+        bar: {
+          horizontal: true,
+          distributed: true,
+          dataLabels: {
+            hideOverflowingLabels: false
+          }
+        }
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: function(val, opts) {
+          var label = opts.w.globals.labels[opts.dataPointIndex]
+          var a = moment(val[0])
+          var b = moment(val[1])
+          var diff = b.diff(a, 'days')
+          return  diff + (diff > 1 ? ' 天' : ' 天')
+        },
+        style: {
+          colors: ['#f3f4f5']
+        }
+      },
+      grid:{
+        show: false,
+        borderColor: '#90A4AE',
+        strokeDashArray: 0,
+        position: 'back',
+        xaxis: {
+            lines: {
+                show: true
+            }
+        },   
+        row: {
+            colors: undefined,
+            opacity: 0
+        },  
+        column: {
+            colors: undefined,
+            opacity: 0
+        },  
+        padding: {
+            top: 0,
+            right: 0,
+            bottom: 0,
+            left: 0
+        }, 
+      },
+      xaxis: {
+        // set axis limit as the minimum and maximum dates of al data
+        min: new Date('2021/04/29 11:23:15').getTime(),
+        max: today,
+        type: 'datetime',
+        labels:{
+          show:true,
+          style:{
+            colors: ['#fff'],
+              fontSize: '16px',
+              fontFamily: 'Helvetica, Arial, sans-serif',
+              fontWeight: 400,
+              cssClass: 'apexcharts-xaxis-label',
+          },
+          offsetX: 0,
+          offsetY: 0,
+          format: undefined,
+          formatter: undefined,
+          datetimeUTC: true,
+          datetimeFormatter: {
+              year: 'yyyy',
+              month: "MM",
+              day: 'dd',
+              hour: 'HH:mm',
+          },
+        },
+      },
+      yaxis: {
+        show: true,
+        showAlways:false,
+        axisBorder:{
+          show:true
+        },
+        labels:{
+          show:true,
+          style:{
+            colors:['#fff'],
+            fontSize:'16px',
+            fontFamily: 'Helvetica, Arial, sans-serif',
+            fontWeight: 600,
+            cssClass: 'apexcharts-yaxis-label',
+          }
+        },
+      },
+      };
+        var chart = new ApexCharts(document.querySelector("#chart"), options);
+        chart.render();
+    
+    </script>
+  </body>
+</html>

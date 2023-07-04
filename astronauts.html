@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="~/lib/Font-Awesome/css/fontawesome.min.css">
+    <link rel="stylesheet" href="~/lib/Font-Awesome/css/regular.min.css">
+    <link rel="stylesheet" href="~/lib/Font-Awesome/css/solid.min.css">
+    <script defer src="https://use.fontawesome.com/releases/v5.0.8/js/all.js"
+        integrity="sha384-SlE991lGASHoBfWbelyBPLsUlwY1GwNDJo3jSJO04KZ33K2bwfV9YBauFfnzvynJ"
+        crossorigin="anonymous"></script>
+
+    <title> 中国航天员任务时间</title>
+    <style>
+        .img-container {
+            text-align: center;
+        }
+
+        .topnav {
+            overflow: hidden;
+            background-color: #333;
+        }
+
+        .topnav a {
+            float: left;
+            color: #f2f2f2;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+            font-size: 17px;
+        }
+
+        .topnav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+
+        .topnav a.active {
+            background-color: #101312;
+            color: white;
+        }
+    </style>
+
+    <script>
+        window.onload = function () {
+            class Astronaut {
+                constructor(_name) {
+                    this.name = _name;
+                    this.missions = [];
+                    this.time = 0;
+                }
+                describe() {
+                    console.log('Astronaut: ', this.name);
+                }
+                addMission(mission) {
+                    this.missions.push(mission);
+                    this.time += mission.duration;
+                }
+            }
+
+            class Mission {
+                constructor(_name, _start, _end, _crew) {
+                    this.name = _name;
+                    this.start = Date.parse(_start);
+                    if (_end === 0) {
+                        this.end = Date.parse(new Date().toLocaleString("en-US", { timeZone: "Asia/Shanghai" }));
+                    } else {
+                        this.end = Date.parse(_end);
+                    }
+                    this.duration = this.end - this.start;
+                    this.crews = _crew;
+                    for (let i = 0; i < this.crews.length; i++) {
+                        this.crews[i].addMission(this);
+                    }
+                }
+                describe() {
+                    console.log("Mission Name: ", this.name);
+                    console.log("Launch: ", this.start);
+                    console.log("Land: ", this.end);
+                    console.log("Crews: ", this.crew);
+                }
+            }
+            /*Astronaut*/
+            ylw = new Astronaut("杨利伟");
+            nhs = new Astronaut("聂海胜");
+            fjl = new Astronaut("费俊龙");
+            zzg = new Astronaut("翟志刚");
+            lbm = new Astronaut("刘伯明");
+            jhp = new Astronaut("景海鹏");
+            lw = new Astronaut("刘旺");
+            ly = new Astronaut("刘洋");
+            wyp = new Astronaut("王亚平");
+            zxg = new Astronaut("张晓光");
+            cd = new Astronaut("陈冬");
+            thb = new Astronaut("汤洪波");
+            ygf = new Astronaut("叶光富");
+            cxz = new Astronaut("蔡旭哲");
+            dqm = new Astronaut("邓清明");
+            zl = new Astronaut("张陆");
+            zyz = new Astronaut("朱杨柱");
+            ghc = new Astronaut('桂海潮');
+            crews = [ylw, nhs, fjl, zzg, lbm, jhp, lw, ly, wyp, zxg, cd, thb, ygf, cxz, dqm, zl, zyz, ghc];
+
+            /*Mission*/
+            let sz5 = new Mission("神舟5", "2003/10/15 9:00:00", "2003/10/16 6:22:00", [ylw]);
+            let sz6 = new Mission("神舟6", "2005/10/12 9:00:00", "2005/10/17 4:33:00", [nhs, fjl]);
+            let sz7 = new Mission("神舟7", "2008/09/25 21:10:00", "2008/09/28 17:37:00", [zzg, lbm, jhp]);
+            let sz8 = new Mission("神舟8", "2011/11/01 5:58:10", "2011/11/17 19:32:00", []);
+            let sz9 = new Mission("神舟9", "2012/06/16 18:37:00", "2012/06/29 10:03:00", [jhp, lw, ly]);
+            let sz10 = new Mission("神舟10", "2013/06/11 17:38:00", "2013/06/26 8:07:00", [nhs, wyp, zxg]);
+            let sz11 = new Mission("神舟11", "2016/10/17 7:30:00", "2016/11/18 13:59:00", [jhp, cd]);
+            let sz12 = new Mission("神舟12", "2021/06/17 9:22:00", "2021/09/17 13:34:00", [nhs, lbm, thb]);
+            let sz13 = new Mission("神舟13", "2021/10/16 00:23:56", '2022/04/16 09:56:00', [zzg, wyp, ygf]);
+            let sz14 = new Mission("神舟14", "2022/06/05 10:44:10", '2022/12/04 20:09:00', [cd, ly, cxz]);
+            let sz15 = new Mission("神舟15", "2022/11/29 23:08:17", '2023/06/04 06:32:58', [fjl, dqm, zl]);
+            let sz16 = new Mission("神舟16", "2023/05/30 09:31:13", 0, [jhp, zyz, ghc]);
+            let missions = [sz5, sz6, sz7, sz8, sz9, sz10, sz11, sz12, sz13, sz14, sz15, sz16];
+            // Prepare data for plot
+            data = [];
+            total_time = 0;
+            //total mission time by all astronauts
+            for (let i = 0; i < crews.length; i++) {
+                total_time += crews[i].time;
+            }
+            total_time=(total_time / 1000 / 24 / 3600).toFixed(2);
+            document.getElementById("totalTime").innerHTML = total_time;
+
+            for (let i = 0; i < missions.length; i++) {
+                let mission = missions[i];
+                //console.log((mission.duration/24/3600/1000).toFixed(2));
+                //console.log(mission.crews);
+                dataPonts = [];
+                for (let j = 0; j < crews.length; j++) {
+                    let new_data = {
+                        y: 0,
+                        label: crews[j].name
+                    }
+                    dataPonts.push(new_data);
+                }
+                //console.log(dataPonts);
+                // for each crew in mission[i].crews, find the index in crews
+                for (let k = 0; k < mission.crews.length; k++) {
+                    let crew = mission.crews[k];
+                    let index = crews.indexOf(crew);
+                    val = (mission.duration / 24 / 3600 / 1000).toFixed(2);
+                    dataPonts[index] = { y: val * 1, label: crew.name }; // *1 to convert string to number
+                }
+                // prepare dataseries for each mission
+                var dataSeries = {
+                    type: "stackedColumn",// or stackedBar
+                    name: mission.name,
+                    showInLegend: "true",
+                    axisYType: "secondary",
+                    dataPoints: dataPonts
+                }
+                // if last mission, add indexLabel: "#total", indexLabelPlacement: "outside",
+                if (i == missions.length - 1) {
+                    dataSeries.indexLabel = "#total";
+                    dataSeries.indexLabelPlacement = "outside";
+                    // indexlabel font color
+                    dataSeries.indexLabelFontColor = "#ffffff";
+                    // indexlabel font size
+                    dataSeries.indexLabelFontSize = 12;
+                }
+                data.push(dataSeries);
+            }
+            //console.log(data);
+
+
+            var options = {
+                animationEnabled: true,
+                //theme: "light3",
+                backgroundColor: "#101312",
+                title: {
+                    text: "中国航天员任务时间",
+                    fontsize: 12,
+                    fontColor: "#ffffff",
+                },
+
+                axisX: {
+                    title: "",
+                    interval: 1,
+                    labelFontSize: 12,
+                    labelFontColor: "#ffffff",
+                },
+                axisY2: {
+                    prefix: "",
+                    lineThickness: .5,
+                    maximum: 240,
+                    labelFontSize: 12,
+                    labelFontColor: "#ffffff",
+                },
+                toolTip: {
+                    shared: true,
+                    reversed: true,
+                    cornerRadius: 5,
+                    fontSize: 12,
+                    contentFormatter: function (e) {
+                        //console.log(e);
+                        var content = " ";
+                        var total = 0;
+                        // include the name of the crew
+                        content += e.entries[0].dataPoint.label + "<br>";
+                        for (var i = 0; i < e.entries.length; i++) {
+                            if (e.entries[i].dataPoint.y != 0) {
+                                content += e.entries[i].dataSeries.name + ": " + e.entries[i].dataPoint.y + "天<br>";
+                                total += e.entries[i].dataPoint.y;
+                            }
+                        }
+                        content += "总计: " + total + "天";
+                        return content;
+                    }
+                },
+                legend: {
+                    verticalAlign: "bottom",
+                    horizontalAlign: "center",
+                    fontSize: 12,
+                    fontColor: "#ffffff",
+                },
+                data: data
+            };
+
+            $("#chartContainer").CanvasJSChart(options);
+        }
+    </script>
+</head>
+
+<body>
+    <div class="topnav">
+        <a href="index.html">主页</a>
+        <a href="css.html">中国空间站</a>
+        <a class='active' href="astronauts.html">航天员</a>
+        <a href="cmse2030.html">载人登月</a>
+        <a href="tianwen1.html">天问一号</a>
+    </div>
+
+    <div id="chartContainer" style="height: 600px; width: 100%;"></div>
+    <script src="https://canvasjs.com/assets/script/jquery-1.11.1.min.js"></script>
+    <script src="https://canvasjs.com/assets/script/jquery.canvasjs.min.js"></script>
+    <h3>总任务人次天数： <span id="totalTime"></span>人天</h3>
+    <div class="img-container">
+        <img src="vony-logo-wb.png" alt="Vony Logo" widht="100" height="100">
+    </div>
+  </body>
+</html>

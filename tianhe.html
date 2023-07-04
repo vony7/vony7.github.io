@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.81/Build/Cesium/Cesium.js"></script>
+  <link href="https://cesium.com/downloads/cesiumjs/releases/1.81/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/satellite.js/4.0.0/satellite.js"></script>
+  <link href="style.css" rel="stylesheet">
+  <style>
+    .img-container {
+        text-align: center;
+    }
+    .topnav {
+        overflow: hidden;
+        background-color: #333;
+        }
+        .topnav a {
+        float: left;
+        color: #f2f2f2;
+        text-align: center;
+        padding: 14px 16px;
+        text-decoration: none;
+        font-size: 17px;
+        }
+        .topnav a:hover {
+        background-color: #ddd;
+        color: black;
+        }
+        .topnav a.active {
+        background-color: #101312;
+        color: white;
+        }
+    </style>
+</head>
+<body>
+  <div class="topnav">
+    <a  href="index.html">主页</a>
+    <a href="css.html">中国空间站</a>
+    <a href="tianwen1.html">天问一号</a>
+    <a href="astronauts.html">航天员</a>
+    <a class="active" href="tianhe.html">天和一号</a>
+</div>
+  <div id="cesiumContainer"></div>
+   <div id="loading">
+  </div>
+  <script>
+    // Initialize the Cesium viewer.
+    const viewer = new Cesium.Viewer('cesiumContainer', {
+      imageryProvider: new Cesium.TileMapServiceImageryProvider({
+        url: Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII"),
+      }),
+      baseLayerPicker: false, geocoder: false, homeButton: false, infoBox: false,
+      navigationHelpButton: false, sceneModePicker: false
+    });
+    // This causes a bug on android, see: https://github.com/CesiumGS/cesium/issues/7871
+    // viewer.scene.globe.enableLighting = true;
+    // These 2 lines are published by NORAD and allow us to predict where
+    // the ISS is at any given moment. They are regularly updated.
+    // Get the latest from: https://celestrak.com/satcat/tle.php?CATNR=25544. 
+    const CSS_TLE = 
+    `1 48274U 21035A   21200.02188429  .00006115  00000-0  70273-4 0  9991
+     2 48274  41.4702  88.8853 0007299 185.9987 309.3101 15.62565823 12675`;
+    const satrec = satellite.twoline2satrec(
+      CSS_TLE.split('\n')[0].trim(), 
+      CSS_TLE.split('\n')[1].trim()
+    );
+    // Give SatelliteJS the TLE's and a specific time.
+    // Get back a longitude, latitude, height (km).
+    // We're going to generate a position every 10 seconds from now until 6 seconds from now. 
+    const totalSeconds = 60 * 60 * 6;
+    const timestepInSeconds = 1;
+    const start = Cesium.JulianDate.fromDate(new Date());
+    const stop = Cesium.JulianDate.addSeconds(start, totalSeconds, new Cesium.JulianDate());
+    viewer.clock.startTime = start.clone();
+    viewer.clock.stopTime = stop.clone();
+    viewer.clock.currentTime = start.clone();
+    viewer.timeline.zoomTo(start, stop);
+    viewer.clock.multiplier = 10;
+    viewer.clock.clockRange = Cesium.ClockRange.LOOP_STOP;
+    
+    const positionsOverTime = new Cesium.SampledPositionProperty();
+    for (let i = 0; i < totalSeconds; i+= timestepInSeconds) {
+      const time = Cesium.JulianDate.addSeconds(start, i, new Cesium.JulianDate());
+      const jsDate = Cesium.JulianDate.toDate(time);
+
+      const positionAndVelocity = satellite.propagate(satrec, jsDate);
+      const gmst = satellite.gstime(jsDate);
+      const p   = satellite.eciToGeodetic(positionAndVelocity.position, gmst);
+
+      const position = Cesium.Cartesian3.fromRadians(p.longitude, p.latitude, p.height * 1000);
+      positionsOverTime.addSample(time, position);
+    }
+    
+    // Visualize the satellite with a red dot.
+    const satellitePoint = viewer.entities.add({
+      position: positionsOverTime,
+      point: { pixelSize: 5, color: Cesium.Color.RED }
+    });
+
+    // Set the camera to follow the satellite 
+    viewer.trackedEntity = satellitePoint;
+    // Wait for globe to load then zoom out     
+    let initialized = false;
+    viewer.scene.globe.tileLoadProgressEvent.addEventListener(() => {
+      if (!initialized && viewer.scene.globe.tilesLoaded === true) {
+        viewer.clock.shouldAnimate = true;
+        initialized = true;
+        viewer.scene.camera.zoomOut(7000000);
+        document.querySelector("#loading").classList.toggle('disappear', true)
+      }
+    });
+  </script>
+</body>
+</html>

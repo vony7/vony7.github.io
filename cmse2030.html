@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<!-- Coding By CodingNepal - youtube.com/codingnepal -->
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>载人登月2030</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="~/lib/Font-Awesome/css/fontawesome.min.css">
+  <link rel="stylesheet" href="~/lib/Font-Awesome/css/regular.min.css">
+  <link rel="stylesheet" href="~/lib/Font-Awesome/css/solid.min.css">
+  <script defer src="https://use.fontawesome.com/releases/v5.0.8/js/all.js"
+    integrity="sha384-SlE991lGASHoBfWbelyBPLsUlwY1GwNDJo3jSJO04KZ33K2bwfV9YBauFfnzvynJ"
+    crossorigin="anonymous"></script>
+  <style>
+    #chart {
+      max-width: 850px;
+      margin: 20px auto;
+    }
+  </style>
+  <style>
+    .img-container {
+      text-align: center;
+    }
+
+    .topnav {
+      overflow: hidden;
+      background-color: #333;
+    }
+
+    .topnav a {
+      float: left;
+      color: #f2f2f2;
+      text-align: center;
+      padding: 14px 16px;
+      text-decoration: none;
+      font-size: 17px;
+    }
+
+    .topnav a:hover {
+      background-color: #ddd;
+      color: #101312;
+    }
+
+    .topnav a.active {
+      background-color: #101312;
+      color: white;
+    }
+  </style>
+  <script>
+    window.Promise ||
+      document.write(
+        '<script src="https://cdn.jsdelivr.net/npm/promise-polyfill@8/dist/polyfill.min.js"><\/script>'
+      )
+    window.Promise ||
+      document.write(
+        '<script src="https://cdn.jsdelivr.net/npm/eligrey-classlist-js-polyfill@1.2.20171210/classList.min.js"><\/script>'
+      )
+    window.Promise ||
+      document.write(
+        '<script src="https://cdn.jsdelivr.net/npm/findindex_polyfill_mdn"><\/script>'
+      )
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+  <script>
+    // Replace Math.random() with a pseudo-random number generator to get reproducible results in e2e tests
+    // Based on https://gist.github.com/blixt/f17b47c62508be59987b
+    var _seed = 42;
+    Math.random = function () {
+      _seed = _seed * 16807 % 2147483647;
+      return (_seed - 1) / 2147483646;
+    };
+  </script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.22.2/moment.min.js"></script>
+</head>
+
+<body>
+  <div class="topnav">
+    <a href="index.html">主页</a>
+    <a href="css.html">中国空间站</a>
+    <a href="astronauts.html">航天员</a>
+    <a class='active' href="cmse2030.html">载人登月</a>
+    <a href="tianwen1.html">天问一号</a>
+  </div>
+  <div class="container">
+    <div class="top-section">
+      <h1>中国载人月球探测工程-登月阶段</h1>
+    </div>
+  </div>
+  <!--div class="img-container">
+    <img src="figures/clep_k.jpeg" alt="CLEP Logo" widht="249" height="372">
+  </div-->
+  <div class="img-container">
+    <img src="figures/lunar_landing1.jpeg" alt="CLEP Logo" widht="871" height="472">
+  </div>
+  <!-- 任务时间BarPlot-->
+  <div id="chart"></div>
+  <script>
+    var currentdate = new Date();
+    var datetime = currentdate.getFullYear() + "/"
+      + (currentdate.getMonth() + 1) + "/"
+      + currentdate.getDate() + " "
+      +
+      + currentdate.getHours() + ":"
+      + currentdate.getMinutes() + ":"
+      + currentdate.getSeconds();
+
+    var today = new Date();
+    var dd = String(today.getDate()).padStart(2, '0');
+    var mm = String(today.getMonth() + 1).padStart(2, '0'); //January is 0!
+    var yyyy = today.getFullYear();
+    var today = yyyy + '-' + mm + '-' + dd;
+    var options = {
+      series: [
+        {
+          data: [
+            {
+              x: '工程官宣至今',
+              y: [
+                new Date('2023-05-29 9:00:00').getTime(),
+                new Date(datetime).getTime()
+              ],
+              fillColor: '#3c7d43'
+            }
+          ]
+        }
+      ],
+      chart: {
+        height: 100,
+        type: 'rangeBar'
+      },
+      plotOptions: {
+        bar: {
+          horizontal: true,
+          distributed: true,
+          dataLabels: {
+            hideOverflowingLabels: true
+          }
+        }
+      },
+      dataLabels: {
+        enabled: true,
+        formatter: function (val, opts) {
+          var label = opts.w.globals.labels[opts.dataPointIndex]
+          var a = moment(val[0])
+          var b = moment(val[1])
+          var diff = b.diff(a, 'days')
+          return diff + (diff > 1 ? ' 天' : ' 天')
+        },
+        style: {
+          colors: ['#f3f4f5']
+        }
+      },
+      grid: {
+        show: true,
+        borderColor: '#90A4AE',
+        strokeDashArray: 0,
+        position: 'back',
+        xaxis: {
+          lines: {
+            show: false
+          }
+        },
+        row: {
+          colors: undefined,
+          opacity: 0
+        },
+        column: {
+          colors: undefined,
+          opacity: 0
+        },
+        padding: {
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0
+        },
+      },
+      xaxis: {
+        type: 'datetime',
+        labels: {
+          show: true,
+          style: {
+            colors: ['#fff'],
+            fontSize: '12px',
+            fontFamily: 'Helvetica, Arial, sans-serif',
+            fontWeight: 400,
+            cssClass: 'apexcharts-xaxis-label',
+          },
+          offsetX: 0,
+          offsetY: 0,
+          format: undefined,
+          formatter: undefined,
+          datetimeUTC: true,
+          datetimeFormatter: {
+            year: 'yyyy',
+            month: "MM",
+            day: 'MM dd',
+            hour: 'HH:mm',
+          },
+        },
+      },
+      yaxis: {
+        show: true,
+        showAlways: true,
+        axisBorder: {
+          show: true
+        },
+        labels: {
+          show: true,
+          style: {
+            colors: ['#fff'],
+            fontSize: '12px'
+          }
+        }
+
+      },
+    };
+    var chart = new ApexCharts(document.querySelector("#chart"), options);
+    chart.render();
+  </script>
+  <script>
+    time_start = Date.parse("2021-05-15 7:18:00");
+    time_now = Date.parse(new Date().toLocaleString("en-US", { timeZone: "Asia/Shanghai" }));
+    time_now2 = Date.parse("2021-08-23 11:50:10");
+    time_duration2 = (time_now2 - time_start) / (24 * 3600 + 39 * 60 + 35) / 1000;
+    time_duration = (time_now2 - time_start) / 24 / 3600 / 1000;
+  </script>
+  <!-- 任务进度追踪Timeline -->
+  <div class="wrapper">
+    <div class="center-line">
+      <a href="#" class="scroll-icon"><i class="fas fa-caret-up"></i></a>
+    </div>
+
+    <div class="row row-2">
+      <section>
+        <i class="icon fas fa-star"></i>
+        <div class="details">
+          <span class="title">中国载人登月发展稳步推进，这些关键技术已获突破</span>
+        </div>
+        <h3 class="date">2023年6月8日</h3>
+        <p>
+          近日，航天科技集团六院研制的我国载人登月火箭主力发动机——130吨级泵后摆液氧煤油发动机完成上试车台后的第六次试车，发动机累计试车时长达到3300秒，工作时长超10余倍任务时间，验证了发动机工作可靠性的同时，再次创造我国百吨级发动机单台试车新纪录。
+        </p>
+        <div class="bottom">
+          <a href="http://www.news.cn/mil/2023-06/08/c_1212196984.htm">详情请见</a>
+          <i>- 中国载人航天工程办公室</i>
+        </div>
+      </section>
+    </div>
+
+        <div class="row row-1">
+      <section>
+        <i class="icon fas fa-star"></i>
+        <div class="details">
+          <span class="title">中国载人登月发展稳步推进，这些关键技术已获突破</span>
+        </div>
+        <h3 class="date">2023年5月29日</h3>
+        <p>
+        5月29日，在神舟十六号载人飞行任务新闻发布会上，中国载人航天工程办公室重磅宣布，近期，中国载人月球探测工程登月阶段任务已启动实施，总的目标是：2030年前实现中国人首次登陆月球，开展月球科学考察及相关技术试验，突破掌握载人地月往返、月面短期驻留、人机联合探测等关键技术，完成“登、巡、采、研、回”等多重任务，形成独立自主的载人月球探测能力，将推动载人航天技术由近地走向深空的跨越式发展，深化人类对月球和太阳系起源与演化的认识，为月球科学的发展贡献中国智慧。
+        针对这一目标，中国载人航天工程办公室在前期关键技术攻关及方案论证的基础上，已全面启动部署研制建设工作，包括研制新一代载人运载火箭（长征十号）、新一代载人飞船、月面着陆器、登月服等飞行产品，新建发射场相关测试发射设施设备等。        
+        </p>
+        <div class="bottom">
+          <a href="https://mp.weixin.qq.com/s/R4OK7WggOquLFkjjsDwInA">详情请见</a>
+          <i>- 中国航天科技集团</i>
+        </div>
+      </section>
+    </div> 
+
+  <div class="row row-2">
+    <section>
+      <i class="icon fas fa-home"></i>
+      <div class="details">
+        <span class="title">中国载人航天工程办公室：计划在2030年前实现中国人首次登陆月球</span>
+      </div>
+      <h3 class="date">2023年5月29日</h3>
+      <p>
+        中国载人航天工程办公室副主任林西强表示，近期，我国载人月球探测工程登月阶段任务已启动实施，计划在2030年前实现中国人首次登陆月球。目前，中国载人航天工程办公室已全面部署开展各项研制建设工作，包括研制新一代载人运载火箭（长征十号）、新一代载人飞船、月面着陆器、登月服等飞行产品，新建发射场相关测试发射设施设备等。（记者李国利、黄一宸、郭明芝）
+      </p>
+      <div class="bottom">
+        <a href="http://www.news.cn/tech/2023-05/29/c_1129652893.htm">详情请见</a>
+        <i>- 中国载人航天工程办公室</i>
+      </div>
+    </section>
+  </div>
+  
+
+</body>
+
+</html>
