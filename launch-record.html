@@ -1,22 +1,70 @@
 <!doctype html>
 <html lang="en">
+
 <head>
-<script type="module" src = "./plotlaunch.js"></script>
-<script type="module" src = "./plotly.js"></script>
-<!-- Plotly.js -->
-<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-<script type="plotly-2.41.1.min.js"charset="utf-8"></script>
+    <script type="module" src="./plotlaunch.js"></script>
+    <script type="module" src="./plotly.js"></script>
+    <!-- Plotly.js -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script type="plotly-2.41.1.min.js" charset="utf-8"></script>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid black;
+            padding: 8px;
+        }
+
+        .img-container {
+            text-align: center;
+        }
+
+        .topnav {
+            overflow: hidden;
+            background-color: #333;
+        }
+
+        .topnav a {
+            float: left;
+            color: #f2f2f2;
+            text-align: center;
+            padding: 14px 16px;
+            text-decoration: none;
+            font-size: 17px;
+        }
+
+        .topnav a:hover {
+            background-color: #ddd;
+            color: black;
+        }
+
+        .topnav a.active {
+            background-color: #101312;
+            color: white;
+        }
+    </style>
 </head>
-<p>
-    <a href="https://bit.ly/1Or9igj">plotly.js documentation</a>
-</p>
+
 <body>
+    <div class="topnav">
+        <a href="index.html">主页</a>
+        <a href="css.html">中国空间站</a>
+        <a href="astronauts.html">航天员</a>
+        <a class='active' href="launch-record.html">发射记录</a>
+        <a href="cmse2030.html">载人登月</a>
+        <a href="tianwen1.html">天问一号</a>
+    </div>
+
     <div id="chartContainer1" style="height: 500px; width: 100%;"></div>
-    <div id="chartContainer2" style="height: 600px; width: 100%;"></div>
     <script type="text/javascript" src="canvasjs.min.js"></script>
     <div id='myDiv0'><!-- Plotly range chart --></div>
+
     <div id='myDiv'><!-- Plotly barchart --></div>
     <div id="myDiv2"><!-- Plotly stepline chart --></div>
+
 </body>
 
 </html>

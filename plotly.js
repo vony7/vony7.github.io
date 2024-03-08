@@ -33,7 +33,7 @@ var data = [
     }
 ];
 
-Plotly.newPlot('myDiv', data);
+//Plotly.newPlot('myDiv', data);
 
 // Step Line Chart
 const countries = launchEvents.map((event) => event.Country);
@@ -67,5 +67,5 @@ var layout = {
     }
 };
 
-Plotly.newPlot('myDiv2', countryDataPoints, layout);
+//Plotly.newPlot('myDiv2', countryDataPoints, layout);
 

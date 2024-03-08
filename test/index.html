@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Space Station Missions</title>
+    <script src="https://d3js.org/d3.v6.min.js"></script>
+    <style>
+        /* Add CSS styles here if needed */
+        .chart-container {
+            max-width: 100%;
+            /* Make the container adapt to the window width */
+            height: auto;
+            /* Allow the height to adjust accordingly */
+        }
+
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 4px;
+            background: #333;
+            color: #fff;
+            border-radius: 4px;
+            pointer-events: none;
+            opacity: 0;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>中国空间站任务</h1>
+    <div id="chart-container">
+        <svg id="gantt-chart"></svg>
+    </div>
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        // Your missions data
+
+        //import { missions } from './css_missions.js';
+        var missions = [
+            {
+                name: "天和一号",
+                mid: " h-1",
+                type: "core",
+                start: "2021-04-29 11:23:17",
+                end: "now",
+                crews: ["NA"]
+            },
+            {
+                name: "天舟二号",
+                mid: " z-2",
+                type: "cargo",
+                start: "2021-05-29 20:55:29",
+                end: "2022-03-31 18:40:00",
+                crews: ["NA"]
+            },
+            {
+                name: "神舟十二号",
+                mid: "sz12",
+                type: "crew",
+                start: "2021-06-17 09:22:00",
+                end: "2021-09-17 13:34:00",
+                crews: ["nhs", "lbm", "hb"]
+            },
+            {
+                name: "天舟三号",
+                mid: " z-3",
+                type: "cargo",
+                start: "2021-09-20 15:10:11",
+                end: "2022-07-27 11:31:00",
+                crews: ["NA"]
+            },
+            {
+                name: "神舟十三号",
+                mid: "sz13",
+                type: "crew",
+                start: "2021-10-16 00:23:56",
+                end: "2022-04-16 09:56:00",
+                crews: ["zzg", "ygf", "wyp"]
+            },
+            {
+                name: "天舟四号",
+                mid: " z-4",
+                type: "cargo",
+                start: "2022-05-10 01:56:37",
+                end: "2022-11-15 07:21:00",
+                crews: ["NA"]
+            },
+            {
+                name: "神舟十四号",
+                mid: "sz14",
+                type: "crew",
+                start: "2022-06-05 10:44:10",
+                end: "2022-12-04 20:09:00",
+                crews: ["cd", "ly", "cxz"]
+            },
+            {
+                name: "问天实验舱",
+                mid: "wen ian",
+                type: "core",
+                start: "2022-07-24 14:22:23",
+                end: "now",
+                crews: ["NA"]
+            },
+            {
+                name: "梦天实验舱",
+                mid: "meng ian",
+                type: "core",
+                start: "2022-10-31 15:37:23",
+                end: "now",
+                crews: ["NA"]
+            },
+            {
+                name: "天舟五号",
+                mid: " z-5",
+                type: "cargo",
+                start: "2022-11-12 10:03:12",
+                end: "2023-09-12 10:13:00",
+                crews: ["NA"]
+            },
+            {
+                name: "神舟十五号",
+                mid: "sz15",
+                type: "crew",
+                start: "2022-11-29 23:08:17",
+                end: "2023-06-04 06:32:58",
+                crews: ["fjl", "dqm", "zl"]
+            },
+            {
+                name: "天舟六号",
+                mid: " z-6",
+                type: "cargo",
+                start: "2023-05-10 21:22:51",
+                end: "now",
+                crews: ["NA"]
+            },
+            {
+                name: "神舟十六号",
+                mid: "sz16",
+                type: "crew",
+                start: "2023-05-30 09:31:13",
+                end: "now",
+                crews: ["jhp", "zyz", "ghc"]
+            }
+        ];
+        // Set up the dimensions and margin
+        var margin = { top: 20, right: 30, bottom: 30, left: 60 };
+        var width = document.getElementById('chart-container').offsetWidth - margin.left - margin.right;
+        var height = 500 - margin.top - margin.bottom;
+
+        // Define x as a global scale
+        var x = d3.scaleTime()
+            .domain([d3.min(missions, function (mission) { return mission.start; }), d3.max(missions, function (mission) { return mission.end; })])
+            .range([0, width]);
+        // Create a function to set up the chart
+        function setupChart() {
+            // Calculate the updated dimensions based on the container size
+            width = document.getElementById('chart-container').offsetWidth - margin.left - margin.right;
+            var containerHeight = height + margin.top + margin.bottom;
+
+            // Update the width of the SVG
+            svg.attr("width", width + margin.left + margin.right);
+
+            // Recalculate the X-axis scale
+            x.range([0, width]);
+
+            // Redraw the Gantt bars
+            svg.selectAll("rect")
+                .attr("x", function (mission) { return x(mission.start); })
+                .attr("width", function (mission) { return x(mission.end) - x(mission.start); });
+
+            // Redraw the X-axis
+            svg.select(".x-axis")
+                .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y-%m-%d")));
+
+            // Adjust the chart container's height if necessary
+            var newHeight = Math.max(containerHeight, height);
+            d3.select("#chart-container").style("height", newHeight + "px");
+        }
+
+        // Create the SVG element
+        var svg = d3.select("#gantt-chart")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        // ... (Rest of your JavaScript code)
+
+        // Initialize the chart
+        setupChart();
+
+        // Handle window resize event to update the chart
+        window.addEventListener('resize', setupChart);
+        // Append an SVG element to the "gantt-chart" div
+        var svg = d3.select("#gantt-chart")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        // Function to parse date and time
+        function parseDate(dateStr) {
+            var parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
+            var date = parseTime(dateStr);
+            return date;
+        }
+
+        // Process missions to handle 'now' end dates, parse mission dates, and calculate duration
+        missions.forEach(function (mission) {
+            if (mission.end === "now") {
+                // Set it to the current date and time
+                mission.end = new Date();
+            } else {
+                mission.end = parseDate(mission.end);
+            }
+
+            mission.start = parseDate(mission.start);
+            mission.duration = (mission.end - mission.start) / (1000 * 60 * 60 * 24); // Calculate duration in days
+        });
+
+        // Calculate the range for the X-axis
+        var x = d3.scaleTime()
+            .domain([d3.min(missions, function (mission) { return mission.start; }), new Date()])
+            .range([0, width]);
+
+        // Calculate the range for the Y-axis
+        var y = d3.scaleBand()
+            .domain(missions.map(function (mission) { return mission.name; }))
+            .range([0, height])
+            .padding(0.1);
+        // Create a color scale based on mission types
+        var colorScale = d3.scaleOrdinal()
+            .domain(missions.map(function (mission) { return mission.type; }))
+            .range(["green", "orange", "red"]);
+        var tooltip = document.getElementById("tooltip");
+        var formatDate = d3.timeFormat("%Y-%m-%d %H:%M:%S");
+
+        // Create the Gantt bars with different fill colors based on mission types
+        svg.selectAll("rect")
+        .data(missions)
+        .enter().append("rect")
+        .attr("x", function (mission) { return x(mission.start); })
+        .attr("y", function (mission) { return y(mission.name); })
+        .attr("width", function (mission) { return x(mission.end) - x(mission.start); })
+        .attr("height", y.bandwidth())
+        .style("fill", function (mission) { return colorScale(mission.type); })
+        .on("mouseover", function (event) {
+            const mission = d3.select(this).datum();
+            tooltip.innerHTML =
+                mission.name + "<br>" +
+                "开始: " + formatDate(mission.start) + "<br>" +
+                "结束: " + formatDate(mission.end) + "<br>" +
+                "历时: " + (mission.duration ? mission.duration.toFixed(2) + " 天" : "N/A");
+        
+            tooltip.style.left = (event.pageX) + "px";
+            tooltip.style.top = (event.pageY - 28) + "px";
+            tooltip.style.opacity = 0.8;
+        })
+        .on("mouseout", function (mission) {
+            tooltip.style.opacity = 0;
+        });
+
+
+        // Add labels to the bars with duration rounded to two decimal places
+        svg.selectAll("text")
+            .data(missions)
+            .enter().append("text")
+            .attr("x", function (mission) { return x(mission.end) - 5; }) // Adjust the positioning for right alignment
+            .attr("y", function (mission) { return y(mission.name) + y.bandwidth() / 2 + 5; })
+            .text(function (mission) {
+                return mission.duration.toFixed(2) + " days";
+            })
+            .style("fill", "black")
+            .style("text-anchor", "end"); // Align the text to the start (right)
+
+
+
+
+        // Add X and Y axis
+        svg.append("g")
+            .attr("class", "x-axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y-%m-%d")));
+
+        svg.append("g")
+            .attr("class", "y-axis")
+            .call(d3.axisLeft(y));
+
+        // Add chart title
+        svg.append("text")
+            .attr("x", width / 2)
+            .attr("y", -5)
+            .attr("text-anchor", "middle")
+            .text("中国空间站任务");
+
+        // Initialize the chart
+        setupChart();
+
+        // Handle window resize event to update the chart
+        window.addEventListener('resize', setupChart);
+
+    </script>
+</body>
+
+</html>

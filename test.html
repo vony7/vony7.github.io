@@ -1,18 +1,48 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <script>
-    function myFunction() {
-      var number = "123";
-      document.getElementById("myText").innerHTML = number;
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Satellite Trajectory with NASA WorldWind</title>
+  <script src="https://worldwind.arc.nasa.gov/2.2/webapp/worldwind.min.js"></script>
+  <style>
+    #worldwind-globe {
+      width: 100%;
+      height: 500px;
     }
-  </script>
+  </style>
 </head>
+<body>
+  <div id="worldwind-globe"></div>
 
-<body onload="myFunction()">
+  <script>
+    // Create a WorldWind globe
+    const wwd = new WorldWind.WorldWindow("worldwind-globe");
 
-  <h1>"The value for number is: " <span id="myText"></span></h1>
+    // Define the satellite trajectory (dummy data; replace with real data)
+    const trajectory = [
+      { latitude: 30, longitude: -90, altitude: 0 },
+      { latitude: 35, longitude: -85, altitude: 100 },
+      // Add more points as needed
+    ];
 
+    const pathAttributes = new WorldWind.ShapeAttributes(null);
+    pathAttributes.outlineColor = WorldWind.Color.RED;
+    pathAttributes.drawOutline = true;
+    pathAttributes.outlineWidth = 2;
+
+    const pathPositions = [];
+    trajectory.forEach(point => {
+      pathPositions.push(new WorldWind.Position(point.latitude, point.longitude, point.altitude));
+    });
+
+    const trajectoryPath = new WorldWind.Path(pathPositions, pathAttributes);
+
+    wwd.addLayer(trajectoryPath);
+
+    // Set initial camera position and view
+    wwd.navigator.lookAtLocation = new WorldWind.Location(30, -90);
+    wwd.navigator.range = 1e6; // Adjust as needed
+  </script>
 </body>
-
 </html>
