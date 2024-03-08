@@ -140,7 +140,7 @@ var cms_missions = [
       mid: "tz-6",
       type: "cargo",
       start: "2023-05-10 21:22:51",
-      end: "now",
+      end: "2024-01-19 20:37:00",
       crew: ["NA"]
     },
     {
@@ -158,5 +158,13 @@ var cms_missions = [
       start: "2023-10-26 11:14:02",
       end: "now",
       crew: ["thb", "tsj", "jxl"]
+    },
+    {
+      name: "天舟七号",
+      mid: "tz-7",
+      type: "cargo",
+      start: "2024-01-17 22:27:30",
+      end: "now",
+      crew: ["NA"]
     }
   ]
