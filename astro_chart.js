@@ -1,5 +1,3 @@
-//console.log("missions: ", cms_missions);
-//console.log("astronauts: ", astronauts);
 // select crew missions from missions
 let crew_missions = [];
 for (let i = 0; i < cms_missions.length; i++) {
@@ -36,12 +34,12 @@ class Mission {
         }
         this.duration = this.end - this.start;
         this.crews = _crew;
-        ////console.log("this.crews: ", this.crews);
+        console.log("this.crews: ", this.crews);
         for (let i = 0; i < _crew.length; i++) {
             //find the astronaut object from crews
             for (let j = 0; j < crews.length; j++) {
                 if (crews[j].name == _crew[i]) {
-                    ////console.log("found: ", crews[j].name);
+                    console.log("found: ", crews[j].name);
                     crews[j].addMission(this);
                 }
             }
@@ -68,9 +66,9 @@ for (let i = 0; i < crew_missions.length; i++) {
     szm = new Mission(crew_missions[i].name, crew_missions[i].start, crew_missions[i].end, crew_missions[i].crew);
     missions.push(szm);
 }
-//console.log("missions:", missions)
-//console.log("crews:", crews)
 
+console.log("missions: ", missions);
+console.log("crews: ", crews);
 let data = [];
 function generateColorMap(numColors) {
     const colorMap = [];
@@ -141,6 +139,9 @@ for (let i = 0; i < nummissions; i++) { //missions
 }
 //console.log("data:", data);
 
+let maxDuration = 270;
+
+console.log("maxDuration:", maxDuration);
 
 var options = {
     animationEnabled: true,
@@ -161,7 +162,7 @@ var options = {
     axisY2: {
         prefix: "",
         lineThickness: .5,
-        maximum: 240,
+        maximum: maxDuration,
         labelFontSize: 12,
         labelFontColor: "#ffffff",
     },
