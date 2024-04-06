@@ -38,7 +38,7 @@ class Mission {
         for (let i = 0; i < _crew.length; i++) {
             //find the astronaut object from crews
             for (let j = 0; j < crews.length; j++) {
-                if (crews[j].name == _crew[i]) {
+                if (crews[j].uid == _crew[i]) {
                     console.log("found: ", crews[j].name);
                     crews[j].addMission(this);
                 }
@@ -139,8 +139,13 @@ for (let i = 0; i < nummissions; i++) { //missions
 }
 //console.log("data:", data);
 
-let maxDuration = 270;
-
+let maxDuration = 0;
+for (let i=0;i<crews.length;i++){
+    if (crews[i].time > maxDuration){
+        maxDuration = crews[i].time;
+    }
+}
+maxDuration=maxDuration/24/3600/1000+10;
 console.log("maxDuration:", maxDuration);
 
 var options = {
