@@ -138,5 +138,19 @@ var astronauts = [
     gender: "m",
     DOB: "1989/02/15",
     group: "3"
+  },
+  {
+    name: "李聪",
+    uid: "lc",
+    gender: "m",
+    DOB: "1989/10/15",
+    group: "3"
+  },
+  {
+    name: "李广苏",
+    uid: "lgs",
+    gender: "m",
+    DOB: "1987/07/15",
+    group: "3"
   }
 ]

@@ -166,5 +166,13 @@ var cms_missions = [
       start: "2024-01-17 22:27:30",
       end: "now",
       crew: ["NA"]
+    },
+    {
+      name: "神舟十八号",
+      mid: "sz18",
+      type: "crew",
+      start: "2024-04-25 20:59:00",
+      end: "now",
+      crew: ["ygf", "lc", "lgs"]
     }
   ]
