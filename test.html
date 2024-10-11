@@ -1,48 +1,236 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Satellite Trajectory with NASA WorldWind</title>
-  <script src="https://worldwind.arc.nasa.gov/2.2/webapp/worldwind.min.js"></script>
-  <style>
-    #worldwind-globe {
-      width: 100%;
-      height: 500px;
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>距离上一次任务时间</title>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Add Bootstrap CSS here -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css">
+    <style>
+      body {
+        background-color: black; /* Set the background color to black */
+        color: white; /* Make text color white for visibility on black background */
     }
-  </style>
+      .img-container {
+          text-align: center;
+      }
+
+      .topnav {
+          overflow: hidden;
+          background-color: #333;
+      }
+
+      .topnav a {
+          float: left;
+          color: #f2f2f2;
+          text-align: center;
+          padding: 14px 16px;
+          text-decoration: none;
+          font-size: 17px;
+      }
+
+      .topnav a:hover {
+          background-color: #ddd;
+          color: black;
+      }
+
+      .topnav a.active {
+          background-color: #101312;
+          color: white;
+      }
+    </style>
 </head>
 <body>
-  <div id="worldwind-globe"></div>
+  <div class="topnav">
+    <a href="index.html">主页</a>
+    <a href="css.html">中国空间站</a>
+    <a class='active' href="astronauts.html">航天员</a>
+    <a href="launch-record.html">发射记录</a>
+    <a href="cmse2030.html">载人登月</a>
+    <a href="tianwen1.html">天问一号</a>
+  </div>
+    <h2>航天员距离上一次任务时间</h2>
+    <div style="text-align: center; margin-top: 20px; margin-bottom:20px">
+      <a href="astronauts.html" class="btn btn-primary">航天员</a>
+  </div>
+    <div id="bar-chart" style="width: 100%; height: 600px;"></div>
+    <script>
+        // Class Definitions
+        class Astronaut {
+            constructor(_name, _uid) {
+                this.name = _name;
+                this.uid = _uid;
+                this.missions = [];
+                this.time = 0; // Time spent in space in milliseconds
+            }
 
-  <script>
-    // Create a WorldWind globe
-    const wwd = new WorldWind.WorldWindow("worldwind-globe");
+            addMission(mission) {
+                this.missions.push(mission);
+                this.time += mission.duration; // Add mission duration to the total time
+            }
 
-    // Define the satellite trajectory (dummy data; replace with real data)
-    const trajectory = [
-      { latitude: 30, longitude: -90, altitude: 0 },
-      { latitude: 35, longitude: -85, altitude: 100 },
-      // Add more points as needed
-    ];
+            getLastMissionEndDate() {
+                if (this.missions.length > 0) {
+                    // Find the most recent mission's end date
+                    let lastMission = this.missions[this.missions.length - 1];
+                    return lastMission.end;
+                }
+                return null; // No missions
+            }
 
-    const pathAttributes = new WorldWind.ShapeAttributes(null);
-    pathAttributes.outlineColor = WorldWind.Color.RED;
-    pathAttributes.drawOutline = true;
-    pathAttributes.outlineWidth = 2;
+            timeSinceLastMission() {
+                let lastMissionEndDate = this.getLastMissionEndDate();
+                if (lastMissionEndDate === null) {
+                    return "No mission completed";
+                }
 
-    const pathPositions = [];
-    trajectory.forEach(point => {
-      pathPositions.push(new WorldWind.Position(point.latitude, point.longitude, point.altitude));
-    });
+                // If astronaut is currently in space, return 0
+                const now = Date.now();
+                if (lastMissionEndDate > now) {
+                    return 0; // Currently in space
+                }
 
-    const trajectoryPath = new WorldWind.Path(pathPositions, pathAttributes);
+                // Calculate time difference in days
+                const millisecondsPerDay = 1000 * 60 * 60 * 24;
+                const timeDiffInDays = (now - lastMissionEndDate) / millisecondsPerDay;
+                return timeDiffInDays.toFixed(2); // Convert to days and round
+            }
+        }
 
-    wwd.addLayer(trajectoryPath);
+        class Mission {
+            constructor(_name, _start, _end, _crew) {
+                this.name = _name;
+                this.start = Date.parse(_start);
+                if (_end === "now") {
+                    this.end = Date.now(); // Ongoing mission
+                } else {
+                    this.end = Date.parse(_end);
+                }
+                this.duration = this.end - this.start; // Calculate mission duration
+                this.crews = _crew;
 
-    // Set initial camera position and view
-    wwd.navigator.lookAtLocation = new WorldWind.Location(30, -90);
-    wwd.navigator.range = 1e6; // Adjust as needed
-  </script>
+                // Assign this mission to the corresponding astronauts
+                for (let i = 0; i < _crew.length; i++) {
+                    let crew_uid = _crew[i];
+                    for (let j = 0; j < crews.length; j++) {
+                        if (crews[j].uid === crew_uid) {
+                            crews[j].addMission(this); // Assign mission to the astronaut
+                        }
+                    }
+                }
+            }
+        }
+
+        // Data for astronauts and missions
+        let astronauts = [
+            { name: "杨利伟", uid: "ylw" },
+            { name: "聂海胜", uid: "nhs" },
+            { name: "费俊龙", uid: "fjl" },
+            { name: "翟志刚", uid: "zzg" },
+            { name: "刘伯明", uid: "lbm" },
+            { name: "刘旺",  uid: "lw"},
+            { name: "刘洋",  uid: "ly" },
+            { name: "张晓光", uid: "zxg"},
+            { name: "王亚平", uid: "wyp" },
+            { name: "景海鹏", uid: "jhp" },
+            { name: "陈冬",  uid: "cd" },
+            { name: "汤洪波", uid: "thb" },
+            { name: "叶光富", uid: "ygf" },
+            { name: "蔡旭哲", uid: "cxz" },
+            { name: "邓清明", uid: "dqm" },
+            { name: "张陆", uid: "zl" },
+            { name: "朱杨柱", uid: "zyz" },
+            { name: "桂海潮", uid: "ghc" },
+            { name: "唐胜杰", uid: "tsj" },
+            { name: "江新林", uid: "jxl" },
+            { name: "李聪", uid: "lc" },
+            { name: "李广苏", uid: "lgs" }
+        ];
+
+        let crew_missions = [
+            { name: "神舟五号", start: "2003-10-15", end: "2003-10-16", crew: ["ylw"] },
+            { name: "神舟六号", start: "2005-10-12", end: "2005-10-17", crew: ["nhs", "fjl"] },
+            { name: "神舟七号", start: "2008-09-25", end: "2008-09-28", crew: ["zzg", "lbm", "jhp"]},
+            { name: "神舟九号", start: "2012-06-16", end: "2012-06-29", crew: ["jhp","lw","ly"]},
+            { name: "神舟十号", start: "2013-06-11", end: "2013-06-26", crew: ["nhs","zxg","wyp"] },
+            { name: "神舟十一号", start: "2016-10-17", end: "2016-11-18", crew: ["jhp","cd"] },
+            { name: "神舟十二号", start: "2021-06-17", end: "2021-09-17", crew: ["nhs", "lbm", "thb"] },
+            { name: "神舟十三号", start: "2021-10-16", end: "2022-04-16", crew: ["zzg", "wyp", "ygf"] },
+            { name: "神舟十四号", start: "2022-06-05", end: "2022-12-04", crew: ["cd", "ly", "cxz"] },
+            { name: "神舟十五号", start: "2022-11-29", end: "2023-06-04", crew: ["fjl", "dqm", "zl"] },
+            { name: "神舟十六号", start: "2023-05-30", end: "2023-10-31", crew: ["jhp", "zyz", "ghc"] },
+            { name: "神舟十七号", start: "2023-10-26", end: "2024-04-30", crew: ["thb", "tsj", "jxl"] },
+            { name: "神舟十八号", start: "2024-04-25", end:"now", crew:["ygf", "lc", "lgs"]}, 
+        ];
+
+        let crews = [];
+        for (let i = 0; i < astronauts.length; i++) {
+            let astro = astronauts[i];
+            let new_astro = new Astronaut(astro.name, astro.uid);
+            crews.push(new_astro); // Add new astronaut to crews
+        }
+
+        // Initialize Mission Instances
+        let missions = [];
+        for (let i = 0; i < crew_missions.length; i++) {
+            let szm = new Mission(crew_missions[i].name, crew_missions[i].start, crew_missions[i].end, crew_missions[i].crew);
+            missions.push(szm);
+        }
+
+        // Calculate time since last mission for each astronaut
+        let astronautNames = [];
+        let timeSinceLastMission = [];
+        for (let i = 0; i < crews.length; i++) {
+            let astronaut = crews[i];
+            let timeSince = astronaut.timeSinceLastMission() / 365.25;  // Convert to years
+            astronautNames.push(astronaut.name);
+            timeSinceLastMission.push(timeSince);
+        }
+
+        // Sort astronauts by time since last mission in descending order
+        let sortedData = astronautNames
+            .map((name, index) => ({ name, time: timeSinceLastMission[index] }))
+            .sort((a, b) => b.time - a.time);  // Sort descending by time
+
+        // Extract sorted names and times
+        astronautNames = sortedData.map(item => item.name);
+        timeSinceLastMission = sortedData.map(item => item.time);
+
+        // Plot the data using Plotly with the Viridis color scheme
+        let data = [{
+            type: 'bar',
+            x: timeSinceLastMission,
+            y: astronautNames,
+            orientation: 'h',
+            marker: {
+                color: timeSinceLastMission,
+                colorscale: 'RdBu', // Use the Viridis color scale
+                cmin: 0,
+                cmax: Math.max(...timeSinceLastMission)
+            },
+            text: timeSinceLastMission.map(time => time.toFixed(2) + '年'),  // Show years
+            textposition: 'auto',
+            hoverinfo: 'text'
+        }];
+
+        let layout = {
+            title: '距离上一次任务时间(年)',
+            xaxis: {
+                title: '距离上一次任务时间'  // Correct label to reflect years
+            },
+            yaxis: {
+                title: '航天员'
+            },
+            height: 800,
+            plot_bgcolor: 'black', // Set chart background color to match page
+            paper_bgcolor: 'black', // Set paper background color to match page
+            font: {
+                color: 'white' // Set font color to white for better visibility
+            }
+        };
+
+        Plotly.newPlot('bar-chart', data, layout);
+    </script>
 </body>
 </html>
