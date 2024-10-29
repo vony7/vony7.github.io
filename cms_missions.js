@@ -174,5 +174,13 @@ var cms_missions = [
       start: "2024-04-25 20:59:00",
       end: "now",
       crew: ["ygf", "lc", "lgs"]
-    }
+    },
+    {
+      name: "神舟十九号",
+      mid: "sz19",
+      type: "crew",
+      start: "2024-10-30 04:27:00",
+      end: "now",
+      crew: ["cxz", "sld", "whz"]
+    }    
   ]

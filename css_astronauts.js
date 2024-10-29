@@ -152,5 +152,19 @@ var astronauts = [
     gender: "m",
     DOB: "1987/07/15",
     group: "3"
-  }
+  },
+  {
+    name: "宋令东",
+    uid: "sld",
+    gender: "m",
+    DOB: "1990/08/15",
+    group: "3"
+  },
+  {
+    name: "王浩泽",
+    uid: "whz",
+    gender: "f",
+    DOB: "1990/03/15",
+    group: "3"
+  }  
 ]
