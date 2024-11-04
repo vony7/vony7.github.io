@@ -150,6 +150,38 @@ let  missions = [
       start: "2023/05/30 09:31:13",
       end: "now",
       crews:["jhp","zyz","ghc"]
-    }
+    },
+    {
+      name: "神舟十七号",
+      mid: "sz17",
+      type: "crew",
+      start: "2023-10-26 11:14:02",
+      end: "2024-04-30 17:46:00",
+      crew: ["thb", "tsj", "jxl"]
+    },
+    {
+      name: "天舟七号",
+      mid: "tz-7",
+      type: "cargo",
+      start: "2024-01-17 22:27:30",
+      end: "now",
+      crew: ["NA"]
+    },
+    {
+      name: "神舟十八号",
+      mid: "sz18",
+      type: "crew",
+      start: "2024-04-25 20:59:00",
+      end: "2024-11-04 01:24:00",
+      crew: ["ygf", "lc", "lgs"]
+    },
+    {
+      name: "神舟十九号",
+      mid: "sz19",
+      type: "crew",
+      start: "2024-10-30 04:27:00",
+      end: "now",
+      crew: ["cxz", "sld", "whz"]
+    }    
   ];
   export{missions};
