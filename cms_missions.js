@@ -182,5 +182,13 @@ var cms_missions = [
       start: "2024-10-30 04:27:00",
       end: "now",
       crew: ["cxz", "sld", "whz"]
-    }    
+    },
+    {
+      name: "天舟八号",
+      mid: "tz-8",
+      type: "cargo",
+      start: "2024-11-15 23:23:18",
+      end: "now",
+      crew: ["NA"]
+    }  
   ]
