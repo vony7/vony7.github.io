@@ -164,7 +164,7 @@ var cms_missions = [
       mid: "tz-7",
       type: "cargo",
       start: "2024-01-17 22:27:30",
-      end: "now",
+      end: "2024/11/17 21:25:00",
       crew: ["NA"]
     },
     {
