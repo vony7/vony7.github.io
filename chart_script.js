@@ -10,7 +10,7 @@ var missions = cms_missions.filter(function(mission) {
 // Set up dimensions and margin
 var margin = { top: 50, right: 30, bottom: 30, left: 100 };
 var width = document.getElementById('chart-container').offsetWidth - margin.left - margin.right;
-var height = Math.max(missions.length * 25, 600) - margin.top - margin.bottom;  // Dynamically set height based on mission count
+var height = Math.max(missions.length * 25, 600) - margin.top - margin.bottom; // Dynamically set height
 
 // Function to parse date
 function parseDate(dateStr) {
@@ -24,18 +24,18 @@ missions.forEach(function(mission, index) {
     if (mission.end === "now") {
         mission.end = Date.now();
     } else if (!mission.end || isNaN(parseDate(mission.end))) {
-        // Set a default end date if end is missing or invalid
-        console.warn(`Mission with missing end date at index ${index}:`, mission);
-        mission.end = mission.start + (7 * 24 * 60 * 60 * 1000); // default to 7 days after start
+        // Log a warning for missing or invalid end dates
+        console.warn(`Mission with missing or invalid end date at index ${index}:`, mission);
+        mission.end = mission.start + (7 * 24 * 60 * 60 * 1000); // Default: 7 days after start
     } else {
         mission.end = parseDate(mission.end);
     }
 
-    // Check for valid dates before calculating duration
+    // Calculate mission duration in days
     if (!isNaN(mission.start) && !isNaN(mission.end)) {
         mission.duration = (mission.end - mission.start) / (1000 * 60 * 60 * 24); // in days
     } else {
-        console.warn(`Mission with invalid date values at index ${index}:`, mission);
+        console.error(`Invalid date values for mission at index ${index}:`, mission);
         mission.duration = null;
     }
 });
@@ -59,7 +59,7 @@ var y = d3.scaleBand()
 
 var colorScale = d3.scaleOrdinal()
     .domain(missions.map(d => d.type))
-    .range(["green", "orange", "red"]);
+    .range(["#4CAF50", "#FF9800", "#F44336"]); // Accessible color palette
 
 var tooltip = document.getElementById("tooltip");
 var formatDate = d3.timeFormat("%Y-%m-%d %H:%M:%S");
@@ -74,10 +74,15 @@ svg.selectAll("rect")
     .attr("height", y.bandwidth())
     .style("fill", d => colorScale(d.type))
     .on("mouseover", function(event, d) {
-        tooltip.innerHTML = `${d.name}<br>开始: ${formatDate(d.start)}<br>结束: ${formatDate(d.end)}<br>历时: ${d.duration ? d.duration.toFixed(2) + " 天" : "N/A"}`;
+        tooltip.innerHTML = `
+            <b>${d.name}</b><br>
+            开始: ${formatDate(d.start)}<br>
+            结束: ${formatDate(d.end)}<br>
+            历时: ${d.duration ? d.duration.toFixed(2) + " 天" : "N/A"}
+        `;
         tooltip.style.left = Math.min(event.pageX, window.innerWidth - tooltip.clientWidth) + "px";
         tooltip.style.top = (event.pageY - 28) + "px";
-        tooltip.style.opacity = 0.8;
+        tooltip.style.opacity = 0.9;
     })
     .on("mouseout", () => tooltip.style.opacity = 0);
 
@@ -104,11 +109,11 @@ svg.append("g")
 // Chart title
 svg.append("text")
     .attr("x", width / 2)
-    .attr("y", -5)
+    .attr("y", -20)
     .attr("text-anchor", "middle")
     .text("中国空间站任务")
-    .style("font-size", "36px")
-    .style("fill", "white");
+    .style("font-size", "24px")
+    .style("fill", "#333");
 
 // Resize handler
 window.addEventListener('resize', function() {
