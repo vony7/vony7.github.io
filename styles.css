@@ -1,0 +1,37 @@
+/* styles.css */
+
+#tooltip {
+    position: absolute;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px;
+    border-radius: 5px;
+    pointer-events: none;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: 10;
+}
+
+svg {
+    font-family: Arial, sans-serif;
+}
+
+.x-axis path,
+.x-axis line,
+.y-axis path,
+.y-axis line {
+    stroke: #ccc;
+}
+
+.text {
+    font-size: 12px;
+    fill: #333;
+}
+
+.chart-title {
+    font-size: 24px;
+    font-weight: bold;
+    fill: #333;
+    text-anchor: middle;
+}

@@ -1,63 +1,46 @@
-// Define a variable
+// Define variable browsers
 var browsers = ["Chrome", "Safari"];
-// missions includes css_mission from cms_missions that start after 2021
+
+// Filter missions starting after 2021
 var missions = cms_missions.filter(function(mission) {
     var missionStartDate = new Date(mission.start);
-    var year = missionStartDate.getFullYear();
-    return year > 2020;
+    return missionStartDate.getFullYear() > 2020;
 });
-//console.log(missions)
-// Set up the dimensions and margin
+
+// Set up dimensions and margin
 var margin = { top: 50, right: 30, bottom: 30, left: 100 };
 var width = document.getElementById('chart-container').offsetWidth - margin.left - margin.right;
-var height = 600 - margin.top - margin.bottom;
+var height = Math.max(missions.length * 25, 600) - margin.top - margin.bottom; // Dynamically set height
 
-// Define x as a global scale
-var x = d3.scaleTime()
-    .domain([d3.min(missions, function (mission) { return mission.start; }), d3.max(missions, function (mission) { return mission.end; })])
-    .range([0, width]);
-// Create a function to set up the chart
-function setupChart() {
-    // Calculate the updated dimensions based on the container size
-    width = document.getElementById('chart-container').offsetWidth - margin.left - margin.right;
-    var containerHeight = height + margin.top + margin.bottom;
-
-    // Update the width of the SVG
-    svg.attr("width", width + margin.left + margin.right);
-
-    // Recalculate the X-axis scale
-    x.range([0, width]);
-
-    // Redraw the Gantt bars
-    svg.selectAll("rect")
-        .attr("x", function (mission) { return x(mission.start); })
-        .attr("width", function (mission) { return x(mission.end) - x(mission.start); });
-
-    // Redraw the X-axis
-    svg.select(".x-axis")
-        .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y-%m-%d")));
-
-    // Adjust the chart container's height if necessary
-    var newHeight = Math.max(containerHeight, height);
-    d3.select("#chart-container").style("height", newHeight + "px");
+// Function to parse date
+function parseDate(dateStr) {
+    return Date.parse(dateStr);
 }
 
-// Create the SVG element
-var svg = d3.select("#gantt-chart")
-    .attr("width", width + margin.left + margin.right)
-    .attr("height", height + margin.top + margin.bottom)
-    .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+// Process missions and handle 'now' end dates
+missions.forEach(function(mission, index) {
+    mission.start = parseDate(mission.start);
+    
+    if (mission.end === "now") {
+        mission.end = Date.now();
+    } else if (!mission.end || isNaN(parseDate(mission.end))) {
+        // Log a warning for missing or invalid end dates
+        console.warn(`Mission with missing or invalid end date at index ${index}:`, mission);
+        mission.end = mission.start + (7 * 24 * 60 * 60 * 1000); // Default: 7 days after start
+    } else {
+        mission.end = parseDate(mission.end);
+    }
 
+    // Calculate mission duration in days
+    if (!isNaN(mission.start) && !isNaN(mission.end)) {
+        mission.duration = (mission.end - mission.start) / (1000 * 60 * 60 * 24); // in days
+    } else {
+        console.error(`Invalid date values for mission at index ${index}:`, mission);
+        mission.duration = null;
+    }
+});
 
-// Initialize the chart
-setupChart();
-
-// Handle window resize event to update the chart
-window.addEventListener('resize', setupChart);
-
-
-// Append an SVG element to the "gantt-chart" div
+// Initialize SVG and scales
 var svg = d3.select("#gantt-chart")
     .append("svg")
     .attr("width", width + margin.left + margin.right)
@@ -65,90 +48,55 @@ var svg = d3.select("#gantt-chart")
     .append("g")
     .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
-// Function to parse date and time
-function parseDate(dateStr) {
-    // Parse the date string, including the time zone (e.g., "2023-10-25 15:30:00 CST")
-    const date = Date.parse(dateStr + " CST");
-    return date;
-}
-
-// Process missions to handle 'now' end dates, parse mission dates, and calculate duration
-missions.forEach(function (mission) {
-    if (mission.end === "now") {
-        // Set the end date to the current date and time in UTC
-        mission.end = Date.parse((new Date()).toISOString()) + 14 * 60 * 60 * 1000;
-    } else {
-        mission.end = parseDate(mission.end);
-    }
-
-    mission.start = parseDate(mission.start);
-    ////console.log(mission.start);
-    mission.duration = (mission.end - mission.start) / (1000 * 60 * 60 * 24); // Calculate duration in days
-    // Debugging code
-
-    //console.log("Mission:", mission.name);
-    //console.log("Start Date:", mission.start);
-    //console.log("End Date:", mission.end);
-    //console.log("Duration:", mission.duration);
-
-});
-
-// Calculate the range for the X-axis
 var x = d3.scaleTime()
-    .domain([d3.min(missions, function (mission) { return mission.start; }), new Date()])
+    .domain([d3.min(missions, d => d.start), Date.now()])
     .range([0, width]);
 
-// Calculate the range for the Y-axis
 var y = d3.scaleBand()
-    .domain(missions.map(function (mission) { return mission.name; }))
+    .domain(missions.map(d => d.name))
     .range([0, height])
     .padding(0.1);
-// Create a color scale based on mission types
-var colorScale = d3.scaleOrdinal()
-    .domain(missions.map(function (mission) { return mission.type; }))
-    .range(["green", "orange", "red"]);
-var tooltip = document.getElementById("tooltip");
-var formatDate = d3.timeFormat("%Y-%m-%d %H:%M:%S CST");
 
-// Create the Gantt bars with different fill colors based on mission types
+var colorScale = d3.scaleOrdinal()
+    .domain(missions.map(d => d.type))
+    .range(["#4CAF50", "#FF9800", "#F44336"]); // Accessible color palette
+
+var tooltip = document.getElementById("tooltip");
+var formatDate = d3.timeFormat("%Y-%m-%d %H:%M:%S");
+
+// Draw Gantt bars
 svg.selectAll("rect")
     .data(missions)
     .enter().append("rect")
-    .attr("x", function (mission) { return x(mission.start); })
-    .attr("y", function (mission) { return y(mission.name); })
-    .attr("width", function (mission) { return x(mission.end) - x(mission.start); })
+    .attr("x", d => !isNaN(d.start) ? x(d.start) : 0)
+    .attr("y", d => y(d.name))
+    .attr("width", d => !isNaN(d.end) && !isNaN(d.start) ? x(d.end) - x(d.start) : 0)
     .attr("height", y.bandwidth())
-    .style("fill", function (mission) { return colorScale(mission.type); })
-    .on("mouseover", function (event) {
-        const mission = d3.select(this).datum();
-        tooltip.innerHTML =
-            mission.name + "<br>" +
-            "开始: " + formatDate(mission.start) + "<br>" +
-            "结束: " + formatDate(mission.end) + "<br>" +
-            "历时: " + (mission.duration ? mission.duration.toFixed(2) + " 天" : "N/A");
-        tooltip.style.textAlign = "left";
-        tooltip.style.left = (event.pageX - tooltip.clientWidth) + "px";
+    .style("fill", d => colorScale(d.type))
+    .on("mouseover", function(event, d) {
+        tooltip.innerHTML = `
+            <b>${d.name}</b><br>
+            开始: ${formatDate(d.start)}<br>
+            结束: ${formatDate(d.end)}<br>
+            历时: ${d.duration ? d.duration.toFixed(2) + " 天" : "N/A"}
+        `;
+        tooltip.style.left = Math.min(event.pageX, window.innerWidth - tooltip.clientWidth) + "px";
         tooltip.style.top = (event.pageY - 28) + "px";
-        tooltip.style.opacity = 0.8;
+        tooltip.style.opacity = 0.9;
     })
-    .on("mouseout", function (mission) {
-        tooltip.style.opacity = 0;
-    });
+    .on("mouseout", () => tooltip.style.opacity = 0);
 
-
-// Add labels to the bars with duration rounded to two decimal places
+// Add labels (only if duration is defined)
 svg.selectAll("text")
     .data(missions)
     .enter().append("text")
-    .attr("x", function (mission) { return x(mission.end) - 5; }) // Adjust the positioning for right alignment
-    .attr("y", function (mission) { return y(mission.name) + y.bandwidth() / 2 + 5; })
-    .text(function (mission) {
-        return mission.duration.toFixed(2) + "天";
-    })
+    .attr("x", d => d.end && !isNaN(d.end) ? x(d.end) - 5 : x(d.start) + 5)
+    .attr("y", d => y(d.name) + y.bandwidth() / 2 + 5)
+    .text(d => d.duration != null ? d.duration.toFixed(2) + "天" : "")
     .style("fill", "white")
-    .style("text-anchor", "end"); // Align the text to the start (right)
+    .style("text-anchor", "end");
 
-// Add X and Y axis
+// Add axes
 svg.append("g")
     .attr("class", "x-axis")
     .attr("transform", "translate(0," + height + ")")
@@ -158,18 +106,46 @@ svg.append("g")
     .attr("class", "y-axis")
     .call(d3.axisLeft(y));
 
-// Add chart title
+// Chart title
 svg.append("text")
     .attr("x", width / 2)
-    .attr("y", -5) // Adjust the y value as needed
+    .attr("y", -20)
     .attr("text-anchor", "middle")
     .text("中国空间站任务")
-    .attr("class", "chart-title") // Add the class
-    .style("font-size", "36px")// Set the font size
-    .style("fill", "white"); // Set the text color to red
+    .style("font-size", "24px")
+    .style("fill", "#333");
 
-// Initialize the chart
-setupChart();
+// Resize handler
+window.addEventListener('resize', function() {
+    // Recalculate width and height
+    width = document.getElementById('chart-container').offsetWidth - margin.left - margin.right;
+    height = Math.max(missions.length * 25, 600) - margin.top - margin.bottom;
 
-// Handle window resize event to update the chart
-window.addEventListener('resize', setupChart);
+    // Update the SVG container
+    d3.select("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom);
+
+    // Update scales
+    x.range([0, width]);
+    y.range([0, height]);
+
+    // Redraw Gantt bars
+    svg.selectAll("rect")
+        .attr("x", d => x(d.start))
+        .attr("y", d => y(d.name))
+        .attr("width", d => x(d.end) - x(d.start))
+        .attr("height", y.bandwidth());
+
+    // Update labels
+    svg.selectAll("text")
+        .attr("x", d => x(d.end) - 5)
+        .attr("y", d => y(d.name) + y.bandwidth() / 2 + 5);
+
+    // Update axes
+    svg.select(".x-axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y-%m-%d")));
+
+    svg.select(".y-axis").call(d3.axisLeft(y));
+});

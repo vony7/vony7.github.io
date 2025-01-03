@@ -46,7 +46,7 @@
     }
 
     .chart-container {
-      max-width: 100%;
+      width: 100%;
       /* Make the container adapt to the window width */
       height: auto;
       /* Allow the height to adjust accordingly */
@@ -92,6 +92,7 @@
   </style>
   <!-- Load D3.js -->
   <script src="https://d3js.org/d3.v6.min.js"></script>
+  <link rel="stylesheet" href="styles.css">
 </head>
 
 <body style="background-color:#101312">
@@ -110,9 +111,9 @@
   </div>
   <h1></h1>
   <div id="chart-container">
+    <div id="tooltip"></div>
     <svg id="gantt-chart"></svg>
   </div>
-  <div id="tooltip" class="tooltip"></div>
   <div class="img-container">
     <img src="figures/vony-logo-wb.png" alt="Vony Logo" width="100" height="100">
   </div>
