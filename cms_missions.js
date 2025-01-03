@@ -164,7 +164,7 @@ var cms_missions = [
       mid: "tz-7",
       type: "cargo",
       start: "2024-01-17 22:27:30",
-      end: "now",
+      end: "2024-11-17 21:25:00",
       crew: ["NA"]
     },
     {
@@ -172,7 +172,7 @@ var cms_missions = [
       mid: "sz18",
       type: "crew",
       start: "2024-04-25 20:59:00",
-      end: "now",
+      end: "2024-11-04 01:24:00",
       crew: ["ygf", "lc", "lgs"]
     },
     {
@@ -182,5 +182,13 @@ var cms_missions = [
       start: "2024-10-30 04:27:00",
       end: "now",
       crew: ["cxz", "sld", "whz"]
-    }    
+    },
+    {
+      name: "天舟八号",
+      mid: "tz-8",
+      type: "cargo",
+      start: "2024-11-15 23:23:18",
+      end: "now",
+      crew: ["NA"]
+    }       
   ]
