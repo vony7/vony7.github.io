@@ -190,5 +190,5 @@ var cms_missions = [
       start: "2024-11-15 23:23:18",
       end: "now",
       crew: ["NA"]
-    }  
-  ]
+    }       
+]
