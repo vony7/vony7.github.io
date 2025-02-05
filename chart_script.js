@@ -1,4 +1,4 @@
-// Define variable browsers
+// Define variable browsers (unused in this script, can be removed if unnecessary)
 var browsers = ["Chrome", "Safari"];
 
 // Filter missions starting after 2021
@@ -64,59 +64,84 @@ var colorScale = d3.scaleOrdinal()
 var tooltip = document.getElementById("tooltip");
 var formatDate = d3.timeFormat("%Y-%m-%d %H:%M:%S");
 
-// Draw Gantt bars
-svg.selectAll("rect")
-    .data(missions)
-    .enter().append("rect")
-    .attr("x", d => !isNaN(d.start) ? x(d.start) : 0)
-    .attr("y", d => y(d.name))
-    .attr("width", d => !isNaN(d.end) && !isNaN(d.start) ? x(d.end) - x(d.start) : 0)
-    .attr("height", y.bandwidth())
-    .style("fill", d => colorScale(d.type))
-    .on("mouseover", function(event, d) {
-        tooltip.innerHTML = `
-            <b>${d.name}</b><br>
-            开始: ${formatDate(d.start)}<br>
-            结束: ${formatDate(d.end)}<br>
-            历时: ${d.duration ? d.duration.toFixed(2) + " 天" : "N/A"}
-        `;
-        tooltip.style.left = Math.min(event.pageX, window.innerWidth - tooltip.clientWidth) + "px";
-        tooltip.style.top = (event.pageY - 28) + "px";
-        tooltip.style.opacity = 0.9;
-    })
-    .on("mouseout", () => tooltip.style.opacity = 0);
+// Function to draw Gantt bars
+function drawGanttBars() {
+    svg.selectAll("rect")
+        .data(missions)
+        .enter().append("rect")
+        .attr("x", d => !isNaN(d.start) ? x(d.start) : 0)
+        .attr("y", d => y(d.name))
+        .attr("width", d => !isNaN(d.end) && !isNaN(d.start) ? x(d.end) - x(d.start) : 0)
+        .attr("height", y.bandwidth())
+        .style("fill", d => colorScale(d.type))
+        .on("mouseover", function(event, d) {
+            tooltip.innerHTML = `
+                <b>${d.name}</b><br>
+                开始: ${formatDate(d.start)}<br>
+                结束: ${formatDate(d.end)}<br>
+                历时: ${d.duration ? d.duration.toFixed(2) + " 天" : "N/A"}
+            `;
+            tooltip.style.left = Math.min(event.pageX, window.innerWidth - tooltip.clientWidth) + "px";
+            tooltip.style.top = (event.pageY - 28) + "px";
+            tooltip.style.opacity = 0.9;
+        })
+        .on("mouseout", () => tooltip.style.opacity = 0);
+}
 
-// Add labels (only if duration is defined)
-svg.selectAll("text")
-    .data(missions)
-    .enter().append("text")
-    .attr("x", d => d.end && !isNaN(d.end) ? x(d.end) - 5 : x(d.start) + 5)
-    .attr("y", d => y(d.name) + y.bandwidth() / 2 + 5)
-    .text(d => d.duration != null ? d.duration.toFixed(2) + "天" : "")
-    .style("fill", "white")
-    .style("text-anchor", "end");
+// Function to add labels
+function addLabels() {
+    svg.selectAll("text")
+        .data(missions)
+        .enter().append("text")
+        .attr("x", d => d.end && !isNaN(d.end) ? x(d.end) - 5 : x(d.start) + 5)
+        .attr("y", d => y(d.name) + y.bandwidth() / 2 + 5)
+        .text(d => d.duration != null ? d.duration.toFixed(2) + "天" : "")
+        .style("fill", "white")
+        .style("text-anchor", "end");
+}
 
-// Add axes
-svg.append("g")
-    .attr("class", "x-axis")
-    .attr("transform", "translate(0," + height + ")")
-    .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y-%m-%d")));
+// Function to add axes
+function addAxes() {
+    svg.append("g")
+        .attr("class", "x-axis")
+        .attr("transform", "translate(0," + height + ")")
+        .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y-%m-%d")));
 
-svg.append("g")
-    .attr("class", "y-axis")
-    .call(d3.axisLeft(y));
+    svg.append("g")
+        .attr("class", "y-axis")
+        .call(d3.axisLeft(y));
+}
 
-// Chart title
-svg.append("text")
-    .attr("x", width / 2)
-    .attr("y", -20)
-    .attr("text-anchor", "middle")
-    .text("中国空间站任务")
-    .style("font-size", "24px")
-    .style("fill", "#333");
+// Function to add chart title
+function addChartTitle() {
+    svg.append("text")
+        .attr("x", width / 2)
+        .attr("y", -20)
+        .attr("text-anchor", "middle")
+        .text("中国空间站任务")
+        .style("font-size", "24px")
+        .style("fill", "#333");
+}
 
-// Resize handler
-window.addEventListener('resize', function() {
+// Initial draw
+drawGanttBars();
+addLabels();
+addAxes();
+addChartTitle();
+
+// Resize handler with debouncing
+function debounce(func, wait) {
+    let timeout;
+    return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+    };
+}
+
+function updateChart() {
+    // Debugging: Log the missions data
+    console.log("Missions data:", missions);
+
     // Recalculate width and height
     width = document.getElementById('chart-container').offsetWidth - margin.left - margin.right;
     height = Math.max(missions.length * 25, 600) - margin.top - margin.bottom;
@@ -130,17 +155,41 @@ window.addEventListener('resize', function() {
     x.range([0, width]);
     y.range([0, height]);
 
-    // Redraw Gantt bars
-    svg.selectAll("rect")
-        .attr("x", d => x(d.start))
+    // Update Gantt bars
+    var bars = svg.selectAll("rect")
+        .data(missions);
+
+    bars.enter()
+        .append("rect")
+        .merge(bars)
+        .attr("x", d => {
+            console.log("Bar start:", d.start); // Debugging
+            return x(d.start);
+        })
         .attr("y", d => y(d.name))
         .attr("width", d => x(d.end) - x(d.start))
-        .attr("height", y.bandwidth());
+        .attr("height", y.bandwidth())
+        .style("fill", d => colorScale(d.type));
+
+    bars.exit().remove();
 
     // Update labels
-    svg.selectAll("text")
-        .attr("x", d => x(d.end) - 5)
-        .attr("y", d => y(d.name) + y.bandwidth() / 2 + 5);
+    var labels = svg.selectAll("text")
+        .data(missions);
+
+    labels.enter()
+        .append("text")
+        .merge(labels)
+        .attr("x", d => {
+            console.log("Label end:", d.end); // Debugging
+            return x(d.end) - 5;
+        })
+        .attr("y", d => y(d.name) + y.bandwidth() / 2 + 5)
+        .text(d => d.duration != null ? d.duration.toFixed(2) + "天" : "")
+        .style("fill", "white")
+        .style("text-anchor", "end");
+
+    labels.exit().remove();
 
     // Update axes
     svg.select(".x-axis")
@@ -148,4 +197,6 @@ window.addEventListener('resize', function() {
         .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y-%m-%d")));
 
     svg.select(".y-axis").call(d3.axisLeft(y));
-});
+}
+
+window.addEventListener('resize', debounce(updateChart, 100));
