@@ -21,7 +21,7 @@ svg {
 .x-axis line,
 .y-axis path,
 .y-axis line {
-    stroke: #ccc;
+    stroke: white;
 }
 
 .text {

@@ -22,7 +22,7 @@ missions.forEach(function(mission, index) {
     mission.start = parseDate(mission.start);
     
     if (mission.end === "now") {
-        mission.end = Date.now();
+        mission.end = Date.now()+12*60*60*1000;
     } else if (!mission.end || isNaN(parseDate(mission.end))) {
         // Log a warning for missing or invalid end dates
         console.warn(`Mission with missing or invalid end date at index ${index}:`, mission);
@@ -105,22 +105,25 @@ function addAxes() {
     svg.append("g")
         .attr("class", "x-axis")
         .attr("transform", "translate(0," + height + ")")
-        .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y-%m-%d")));
+        .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y-%m-%d")))
+        .selectAll(".x-axis text").style("fill", "white");
 
     svg.append("g")
         .attr("class", "y-axis")
-        .call(d3.axisLeft(y));
+        .call(d3.axisLeft(y))
+        .selectAll(".x-axis text").style("fill", "white");
 }
 
 // Function to add chart title
 function addChartTitle() {
     svg.append("text")
+        .attr("class", "chart-title")
         .attr("x", width / 2)
         .attr("y", -20)
         .attr("text-anchor", "middle")
         .text("中国空间站任务")
         .style("font-size", "24px")
-        .style("fill", "#333");
+        .style("fill", "white");
 }
 
 // Initial draw
@@ -197,6 +200,7 @@ function updateChart() {
         .call(d3.axisBottom(x).tickFormat(d3.timeFormat("%Y-%m-%d")));
 
     svg.select(".y-axis").call(d3.axisLeft(y));
+    svg.select(".chart-title").style("fill", "white");
 }
 
 window.addEventListener('resize', debounce(updateChart, 100));

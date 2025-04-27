@@ -166,5 +166,19 @@ var astronauts = [
     gender: "f",
     DOB: "1990/03/15",
     group: "3"
-  }  
+  },
+  {
+    name:"陈中瑞",
+    uid:"czr",
+    gender:"m",
+    DOB:"1984/10/15",
+    group:"3"
+  },
+  {
+    name:"王杰",
+    uid:"wj",
+    gender:"m",
+    DOB:"1989/09/15",
+    group:"3"
+  }
 ]

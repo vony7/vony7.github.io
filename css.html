@@ -3,7 +3,7 @@
 
 <head>
   <!-- Plotly.js -->
-  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
   <script type="plotly-2.41.1.min.js" charset="utf-8"></script>
   <!-- Add your CSS styles here -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
@@ -51,17 +51,21 @@
       /* Make the container adapt to the window width */
       height: auto;
       /* Allow the height to adjust accordingly */
+      max-height: 80vh;
+      overflow-y: auto;
     }
 
     .tooltip {
       position: absolute;
-      text-align: center;
+      background:rgba(0,0,0,0.8);
+      color:white;
       padding: 4px;
-      background: #333;
-      color: #fff;
-      border-radius: 4px;
-      pointer-events: none;
-      opacity: 0;
+      border-radius:5px;
+      pointer-events:none;
+      font-size:12px;
+      opacity:0;
+      transition: opacity 0.3s ease;
+      z-index:10;
     }
 
     /* X-axis label color */
@@ -70,7 +74,7 @@
     }
 
     /* Y-axis label color */
-    .y-axis text {
+    .y-axis white {
       fill: white;
       font-size: 14px;
     }
@@ -124,6 +128,13 @@
 </div>
   <script src="cms_missions.js"></script>
   <script src="chart_script.js"></script>
+  <script>
+    // triggr a resize event after the window has fully loaded
+    window.addEventListener('load', function () {
+      var event = new Event('resize');
+      window.dispatchEvent(event);
+    });
+  </script>
 </body>
 
 </html>
