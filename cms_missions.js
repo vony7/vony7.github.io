@@ -180,7 +180,7 @@ var cms_missions = [
       mid: "sz19",
       type: "crew",
       start: "2024-10-30 04:27:00",
-      end: "now",
+      end: "2025-04-30 13:08:00",
       crew: ["cxz", "sld", "whz"]
     },
     {
