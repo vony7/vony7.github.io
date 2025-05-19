@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>China Space Missions</title>
+  <style>
+    /* Your existing CSS styles */
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #800020;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background: white;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 12px;
+      text-align: left;
+    }
+    th {
+      background-color: #800020;
+      color: white;
+      position: sticky;
+      top: 0;
+    }
+    tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+    tr:hover {
+      background-color: #f5f5f5;
+    }
+    a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .filter-section {
+      background: white;
+      padding: 15px;
+      margin-bottom: 20px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    select, button {
+      padding: 8px 12px;
+      margin-right: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+    button {
+      background-color: #800020;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #600018;
+    }
+    .sort-arrow {
+      margin-left: 5px;
+    }
+    .no-data {
+      text-align: center;
+      padding: 20px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>China Space Missions</h1>
+
+    <div class="filter-section">
+      <form method="get" action="{{ url_for('mission_list') }}">
+        <label for="type">Filter by mission type:</label>
+        <select name="type" id="type">
+          <option value="">All Missions</option>
+          <option value="crew" {% if request.args.get('type') == 'crew' %}selected{% endif %}>Manned (载人)</option>
+          <option value="cargo" {% if request.args.get('type') == 'cargo' %}selected{% endif %}>Cargo (货运)</option>
+          <option value="core" {% if request.args.get('type') == 'core' %}selected{% endif %}>Module (舱段)</option>
+        </select>
+        <button type="submit">Apply Filter</button>
+      </form>
+    </div>
+
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- [Keep existing head content] -->
+</head>
+<body>
+  <!-- [Keep existing header and filter section] -->
+
+  <table>
+    <thead>
+      <tr>
+        <th>任务名称</th>
+        <th>任务类型</th>
+        <th>
+          <a href="{{ url_for('mission_list', type=request.args.get('type', ''), sort_by='start', order='asc' if not (request.args.get('sort_by') == 'start' and request.args.get('order') == 'asc') else 'desc') }}">
+            开始时间
+            {% if request.args.get('sort_by') == 'start' %}
+              <span class="sort-arrow">
+                {% if request.args.get('order') == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+              </span>
+            {% endif %}
+          </a>
+        </th>
+        <th>
+          <a href="{{ url_for('mission_list', type=request.args.get('type', ''), sort_by='end', order='asc' if not (request.args.get('sort_by') == 'end' and request.args.get('order') == 'asc') else 'desc') }}">
+            结束时间
+            {% if request.args.get('sort_by') == 'end' %}
+              <span class="sort-arrow">
+                {% if request.args.get('order') == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+              </span>
+            {% endif %}
+          </a>
+        </th>
+        <th>
+          <a href="{{ url_for('mission_list', type=request.args.get('type', ''), sort_by='duration', order='asc' if not (request.args.get('sort_by') == 'duration' and request.args.get('order') == 'asc') else 'desc') }}">
+            持续时间
+            {% if request.args.get('sort_by') == 'duration' %}
+              <span class="sort-arrow">
+                {% if request.args.get('order') == 'asc' %}&uarr;{% else %}&darr;{% endif %}
+              </span>
+            {% endif %}
+          </a>
+        </th>
+        <th>飞行乘组</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for mission in missions %}
+      <tr>
+        <td>{{ mission.name }}</td>
+        <td>{{ mission.type }}</td>
+        <td>{{ mission.start }}</td>
+        <td>{{ mission.end }}</td>
+        <td>{{ mission.duration_display }}</td>
+        <td>
+        {% if mission.crew %}
+            {% for person in mission.crew %}
+            <a href="/astronaut/{{ person.uid }}" style="color: #800020; font-weight: bold;">{{ person.name }}</a>
+            {% if not loop.last %}, {% endif %}
+            {% endfor %}
+        {% else %}
+            —
+        {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

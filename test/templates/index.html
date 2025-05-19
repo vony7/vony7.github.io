@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Astronaut Information</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f2f2f2; margin: 0; }
+    header { background-color: #800020; color: white; padding: 20px; text-align: center; }
+    main { padding: 20px; max-width: 1000px; margin: auto; background-color: white; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+    th { background-color: #c04040; color: white; }
+    .headshot { width: 60px; height: auto; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header><h1>Astronaut Information</h1></header>
+  <main>
+    <table>
+      <thead>
+        <tr>
+          <th>Headshot</th>
+          <th>Name</th>
+          <th>Nationality</th>
+          <th>Mission Count</th>
+          <th>First Mission</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for astro in astronauts %}
+        <tr>
+          <td><img src="{{ astro['image_url'] }}" alt="{{ astro['name'] }}" class="headshot" /></td>
+          <td>{{ astro['name'] }}</td>
+          <td>{{ astro['nationality'] }}</td>
+          <td>{{ astro['mission_count'] }}</td>
+          <td>{{ astro['first_mission'] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </main>
+</body>
+</html>

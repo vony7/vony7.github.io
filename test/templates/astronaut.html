@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ astronaut.name }} – Astronaut Profile</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
+    .profile-card {
+      background: white;
+      max-width: 700px;
+      margin: auto;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 { margin-top: 0; color: #800020; }
+    .avatar {
+      float: right;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-left: 20px;
+      border: 2px solid #ccc;
+    }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    td { padding: 8px; }
+    td.label { font-weight: bold; width: 30%; background: #eee; }
+    .missions { margin-top: 30px; }
+    .missions h2 { margin-bottom: 10px; }
+    .missions ul { padding-left: 20px; }
+    .missions li { margin-bottom: 6px; }
+    .back-link { text-align: center; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <div class="profile-card">
+    <img class="avatar" src="/static/{{ astronaut.uid }}.jpg" onerror="this.src='/static/default.jpg'" alt="{{ astronaut.name }}" />
+    <h1>{{ astronaut.name }}</h1>
+    <table>
+      <tr><td class="label">UID</td><td>{{ astronaut.uid }}</td></tr>
+      <tr><td class="label">性别</td><td>{{ '男' if astronaut.gender == 'm' else '女' }}</td></tr>
+      <tr><td class="label">出生日期</td><td>{{ astronaut.DOB }}</td></tr>
+      <tr><td class="label">服役批次</td><td>{{ astronaut.group_id }}</td></tr>
+      <tr><td class="label">服役状态</td><td>{{ '现役' if astronaut.status == 1 else '退役' }}</td></tr>
+    </table>
+
+    {% if future_missions %}
+    <div class="missions">
+    <h2>Upcoming Missions</h2>
+    <ul>
+        {% for m in future_missions %}
+        <li>{{ m.name }} (launch: {{ m.start }})</li>
+        {% endfor %}
+    </ul>
+    </div>
+    {% endif %}
+
+    {% if past_missions %}
+    <div class="missions">
+    <h2>Past Missions</h2>
+    <ul>
+        {% for m in past_missions %}
+        <li>{{ m.name }} ({{ m.start }} – {{ m.end }})</li>
+        {% if m.duration %} -{{m.duration}} dyas{% endif %}
+        {% endfor %}
+    </ul>
+    </div>
+    {% endif %}
+
+
+    <div class="back-link">
+      <a href="/chinese">&larr; 返回航天员列表</a>
+    </div>
+  </div>
+</body>
+</html>
