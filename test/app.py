@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, abort
 from datetime import datetime,timezone,timedelta
 from dateutil import parser
 import sqlite3
@@ -302,6 +302,85 @@ def mission_list():
                          sort_by=sort_by,
                          order=order)
 
+@app.route('/mission/<mission_id>')
+def mission_detail(mission_id):
+    conn = sqlite3.connect('astronauts.db')
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # Get mission details
+    cursor.execute("SELECT * FROM missions WHERE id = ?", (mission_id,))
+    mission = cursor.fetchone()
+    
+    if not mission:
+        conn.close()
+        abort(404)
+        
+    # Get crew members
+    cursor.execute("""
+        SELECT a.* 
+        FROM astronauts_cn a
+        JOIN mission_crew mc ON a.uid = mc.astronaut_uid
+        WHERE mc.mission_id = ?
+    """, (mission_id,))
+    crew = cursor.fetchall()
+    # Enhanced duration calculation
+    duration_info = {
+        'days': 0,
+        'hours': 0,
+        'minutes': 0,
+        'seconds': 0,
+        'is_ongoing': False,
+        'display': "待计算"
+    }
+
+    try:
+        if mission['start'] and mission['start'] != '0':
+            start_dt = parser.parse(mission['start'])
+            if not start_dt.tzinfo:
+                start_dt = start_dt.replace(tzinfo=tz_utc8)
+            
+            # Determine end time (current time if ongoing)
+            if mission['end'] and mission['end'] != '0':
+                end_dt = parser.parse(mission['end'])
+                if not end_dt.tzinfo:
+                    end_dt = end_dt.replace(tzinfo=tz_utc8)
+            else:
+                end_dt = datetime.now(tz_utc8)
+                duration_info['is_ongoing'] = True
+            
+            if start_dt and end_dt:
+                delta = end_dt - start_dt
+                total_seconds = delta.total_seconds()
+                
+                # Calculate breakdown
+                duration_info['days'] = int(total_seconds // 86400)
+                remaining_seconds = total_seconds % 86400
+                duration_info['hours'] = int(remaining_seconds // 3600)
+                remaining_seconds %= 3600
+                duration_info['minutes'] = int(remaining_seconds // 60)
+                duration_info['seconds'] = int(remaining_seconds % 60)
+                
+                # Format display
+                if duration_info['days'] > 0:
+                    duration_info['display'] = f"{duration_info['days']}天 {duration_info['hours']}小时"
+                elif duration_info['hours'] > 0:
+                    duration_info['display'] = f"{duration_info['hours']}小时 {duration_info['minutes']}分钟"
+                else:
+                    duration_info['display'] = f"{duration_info['minutes']}分钟"
+                
+                if duration_info['is_ongoing']:
+                    duration_info['display'] += " (进行中)"
+                
+    except Exception as e:
+        print(f"Duration calculation error: {e}")
+
+    conn.close()
+
+    return render_template('mission_detail.html',
+                            mission=mission,
+                            crew=crew,
+                            duration=duration_info)
 # -------------------- Run App --------------------
 if __name__ == "__main__":
     app.run(debug=True)

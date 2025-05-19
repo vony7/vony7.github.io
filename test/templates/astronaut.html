@@ -35,7 +35,10 @@
 </head>
 <body>
   <div class="profile-card">
-    <img class="avatar" src="/static/{{ astronaut.uid }}.jpg" onerror="this.src='/static/default.jpg'" alt="{{ astronaut.name }}" />
+    <img class="avatar"
+        src="/static/images/astronauts/{{ astronaut.uid }}.jpg"
+        onerror="this.onerror=null;this.src='/static/images/astronauts/{{ astronaut.uid }}.png';"
+        alt="{{ astronaut.name }}">
     <h1>{{ astronaut.name }}</h1>
     <table>
       <tr><td class="label">UID</td><td>{{ astronaut.uid }}</td></tr>
@@ -57,12 +60,14 @@
     {% endif %}
 
     {% if past_missions %}
+    <h2>个人简介</h2>
+
     <div class="missions">
-    <h2>Past Missions</h2>
+    <h2>飞行任务</h2>
     <ul>
         {% for m in past_missions %}
         <li>{{ m.name }} ({{ m.start }} – {{ m.end }})</li>
-        {% if m.duration %} -{{m.duration}} dyas{% endif %}
+        {% if m.duration %} -{{m.duration}} 天{% endif %}
         {% endfor %}
     </ul>
     </div>

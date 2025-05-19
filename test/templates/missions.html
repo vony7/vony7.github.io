@@ -83,6 +83,14 @@
       padding: 20px;
       color: #666;
     }
+    .mission-patch {
+    /* [Existing styles] */
+    transition: transform 0.3s ease;
+    filter: drop-shadow(0 0 5px rgba(0,0,0,0.2));
+    }
+    .mission-patch:hover {
+        transform: scale(1.05);
+    }
   </style>
 </head>
 <body>
@@ -114,6 +122,7 @@
     <thead>
       <tr>
         <th>任务名称</th>
+        <th>任务代号</th>
         <th>任务类型</th>
         <th>
           <a href="{{ url_for('mission_list', type=request.args.get('type', ''), sort_by='start', order='asc' if not (request.args.get('sort_by') == 'start' and request.args.get('order') == 'asc') else 'desc') }}">
@@ -152,6 +161,7 @@
       {% for mission in missions %}
       <tr>
         <td>{{ mission.name }}</td>
+        <td>{{ mission.mid}}</td>
         <td>{{ mission.type }}</td>
         <td>{{ mission.start }}</td>
         <td>{{ mission.end }}</td>
