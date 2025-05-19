@@ -32,16 +32,18 @@ def query_chinese_astronauts(gender=None, group=None):
 # -------------------- Chinese Astronaut List --------------------
 @app.route('/chinese')
 def chinese_astronauts():
-    # Get filter parameters
+    # Get filter and sort parameters
     gender = request.args.get('gender')
     search = request.args.get('search')
     group = request.args.get('group')
+    sort_by = request.args.get('sort_by', 'name')
+    order = request.args.get('order', 'asc')
     
     conn = sqlite3.connect('astronauts.db')
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # Base query for astronauts
+    # Base query
     sql = "SELECT * FROM astronauts_cn WHERE 1=1"
     params = []
 
@@ -56,9 +58,8 @@ def chinese_astronauts():
         params.append(group)
 
     cursor.execute(sql, params)
-    astronauts = cursor.fetchall()  # This is the correct variable name we should use
+    astronauts = cursor.fetchall()
 
-    # Enhance each astronaut with mission info
     enhanced_astronauts = []
     for astronaut in astronauts:
         # Get missions for this astronaut
@@ -67,7 +68,6 @@ def chinese_astronauts():
             FROM missions m
             JOIN mission_crew mc ON m.id = mc.mission_id
             WHERE mc.astronaut_uid = ?
-            ORDER BY m.start DESC
         """, (astronaut['uid'],))
         missions = cursor.fetchall()
 
@@ -80,25 +80,37 @@ def chinese_astronauts():
             
             try:
                 if mission['start'] and mission['start'] != '0':
+                    # Parse dates with timezone awareness
                     start_dt = parser.parse(mission['start'])
-                    end_dt = parser.parse(mission['end']) if mission['end'] and mission['end'] != '0' else datetime.now(tz_utc8).replace(tzinfo=None)
+                    if not start_dt.tzinfo:
+                        start_dt = start_dt.replace(tzinfo=tz_utc8).replace(tzinfo=None)
+                    
+                    if mission['end'] and mission['end'] != '0':
+                        end_dt = parser.parse(mission['end'])
+                        if not end_dt.tzinfo:
+                            end_dt = end_dt.replace(tzinfo=tz_utc8).replace(tzinfo=None)
+                    else:
+                        end_dt = datetime.now(tz_utc8).replace(tzinfo=None)
                     
                     if start_dt and end_dt:
                         duration = end_dt - start_dt
                         mission_seconds = duration.total_seconds()
-                        total_seconds += mission_seconds
+                        total_seconds += mission_seconds  # Accumulate total
                         
+                        # Format display
                         if mission_seconds > 0:
                             if duration.days >= 1:
                                 duration_display = f"{duration.days}天"
                             else:
                                 hours = int(mission_seconds // 3600)
+                                minutes = int((mission_seconds % 3600) // 60)
                                 if hours > 0:
                                     duration_display = f"{hours}小时"
                                 else:
-                                    duration_display = f"{int(mission_seconds // 60)}分钟"
+                                    duration_display = f"{minutes}分钟"
             except Exception as e:
-                print(f"Date error: {e}")
+                mission_id = mission['id'] if 'id' in mission else 'unknown'
+                print(f"Date error for mission {mission_id}: {e}")
                 duration_display = "计算中"
             
             mission_list.append({
@@ -109,22 +121,39 @@ def chinese_astronauts():
             })
 
         # Calculate total time display
-        total_display = "-"
+        total_display = "0天"
         if total_seconds > 0:
-            if total_seconds >= 86400:  # 1 day in seconds
-                total_display = f"{int(total_seconds // 86400)}天"
+            total_days = int(total_seconds // 86400)
+            remaining_seconds = total_seconds % 86400
+            hours = int(remaining_seconds // 3600)
+            
+            if total_days >= 1:
+                total_display = f"{total_days}天"
+                if hours > 0:
+                    total_display += f" {hours}小时"
             else:
                 hours = int(total_seconds // 3600)
+                minutes = int((total_seconds % 3600) // 60)
                 if hours > 0:
                     total_display = f"{hours}小时"
                 else:
-                    total_display = f"{int(total_seconds // 60)}分钟"
+                    total_display = f"{minutes}分钟"
 
         enhanced_astronaut = dict(astronaut)
         enhanced_astronaut['missions'] = mission_list
         enhanced_astronaut['total_mission_time'] = total_display
+        enhanced_astronaut['total_seconds'] = total_seconds
         
         enhanced_astronauts.append(enhanced_astronaut)
+
+    # Sorting
+    reverse = order == 'desc'
+    if sort_by == 'total':
+        enhanced_astronauts.sort(key=lambda x: x['total_seconds'], reverse=reverse)
+    elif sort_by == 'name':
+        enhanced_astronauts.sort(key=lambda x: x['name'], reverse=reverse)
+    elif sort_by == 'group':
+        enhanced_astronauts.sort(key=lambda x: x['group_id'], reverse=reverse)
 
     conn.close()
     
@@ -133,9 +162,10 @@ def chinese_astronauts():
         astronauts=enhanced_astronauts,
         selected_gender=gender,
         search=search,
-        selected_group=group
+        selected_group=group,
+        sort_by=sort_by,
+        order=order
     )
-    
 # -------------------- Astronaut Profile --------------------
 @app.route("/astronaut/<uid>")
 def astronaut_profile(uid):

@@ -103,6 +103,9 @@
     .mission-item {
       margin-bottom: 5px;
     }
+    .sort-arrow {
+      margin-left: 5px;
+    }
     .total-time {
       font-weight: bold;
       color: #800020;
@@ -170,7 +173,23 @@
           <th class="col-group">批次</th>
           <th class="col-status">状态</th>
           <th class="col-missions">执行任务</th>
-          <th class="col-total">太空总时长(天)</th>
+          <!-- In the table header section, modify the last column -->
+          <th class="col-total">
+            <a href="{{ url_for('chinese_astronauts', 
+                gender=request.args.get('gender'), 
+                search=request.args.get('search'), 
+                group=request.args.get('group'), 
+                sort_by='total', 
+                order='asc' if not (request.args.get('sort_by') == 'total' and request.args.get('order') == 'asc') else 'desc') }}"
+              style="color: white; text-decoration: none;">
+              太空总时长(天)
+              {% if request.args.get('sort_by') == 'total' %}
+                <span class="sort-arrow">
+                  {% if request.args.get('order') == 'asc' %}↑{% else %}↓{% endif %}
+                </span>
+              {% endif %}
+            </a>
+          </th>
         </tr>
       </thead>
       <tbody>
