@@ -32,8 +32,6 @@ def query_chinese_astronauts(gender=None, group=None):
     conn.close()
     return results
 
-
-
 # -------------------- Chinese Astronaut List --------------------
 @app.route("/chinese")
 def chinese_astronauts():
