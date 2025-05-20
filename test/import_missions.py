@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS mission_crew (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     mission_id INTEGER,
     astronaut_uid TEXT,
+    UNIQUE (mission_id, astronaut_uid),
     FOREIGN KEY (mission_id) REFERENCES missions(id),
     FOREIGN KEY (astronaut_uid) REFERENCES astronauts_cn(uid)
 )
@@ -31,7 +32,6 @@ CREATE TABLE IF NOT EXISTS mission_crew (
 with open("data/missions_cn.csv", newline='', encoding="utf-8") as f:
     reader = csv.DictReader(f)
     for row in reader:
-        # Normalize end date
         end_date = row["end"] if row["end"] != "0" else None
 
         # Insert mission
@@ -40,15 +40,15 @@ with open("data/missions_cn.csv", newline='', encoding="utf-8") as f:
         VALUES (?, ?, ?, ?, ?)
         ''', (row["name"], row["mid"], row["type"], row["start"], end_date))
 
-        # Get inserted mission ID
+        # Get mission ID
         cursor.execute("SELECT id FROM missions WHERE mid = ?", (row["mid"],))
         mission_id = cursor.fetchone()[0]
 
-        # Insert crew members if applicable
+        # Insert crew
         if row["crews"] != "NA":
             for uid in row["crews"].split():
                 cursor.execute('''
-                INSERT INTO mission_crew (mission_id, astronaut_uid)
+                INSERT OR IGNORE INTO mission_crew (mission_id, astronaut_uid)
                 VALUES (?, ?)
                 ''', (mission_id, uid))
 
