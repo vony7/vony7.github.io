@@ -7,6 +7,9 @@ tz_utc8 = timezone(timedelta(hours=8))
 
 app = Flask(__name__)
 
+@app.route('/')
+def index():
+    return "Hello, Flask is running on Render!"
 
 # -------------------- Helpers --------------------
 def query_chinese_astronauts(gender=None, group=None):
@@ -28,6 +31,7 @@ def query_chinese_astronauts(gender=None, group=None):
     results = cursor.fetchall()
     conn.close()
     return results
+
 
 
 # -------------------- Chinese Astronaut List --------------------
