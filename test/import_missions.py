@@ -5,7 +5,7 @@ import csv
 conn = sqlite3.connect("astronauts.db")
 cursor = conn.cursor()
 
-# Create tables if not exist
+# Ensure tables exist
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS missions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,24 +34,39 @@ with open("data/missions_cn.csv", newline='', encoding="utf-8") as f:
     for row in reader:
         end_date = row["end"] if row["end"] != "0" else None
 
-        # Insert mission
-        cursor.execute('''
-        INSERT OR IGNORE INTO missions (name, mid, type, start, end)
-        VALUES (?, ?, ?, ?, ?)
-        ''', (row["name"], row["mid"], row["type"], row["start"], end_date))
-
-        # Get mission ID
+        # Check if mission already exists by mid
         cursor.execute("SELECT id FROM missions WHERE mid = ?", (row["mid"],))
-        mission_id = cursor.fetchone()[0]
+        mission_result = cursor.fetchone()
 
-        # Insert crew
-        if row["crews"] != "NA":
+        if mission_result:
+            mission_id = mission_result[0]
+            print(f"Skipped mission '{row['name']}' (mid={row['mid']}) — already exists.")
+        else:
+            # Insert new mission
+            cursor.execute('''
+            INSERT INTO missions (name, mid, type, start, end)
+            VALUES (?, ?, ?, ?, ?)
+            ''', (row["name"], row["mid"], row["type"], row["start"], end_date))
+            mission_id = cursor.lastrowid
+            print(f"Inserted mission '{row['name']}'")
+
+        # Insert crew members (only if mission_id is valid and crew listed)
+        if mission_id and row["crews"] != "NA":
             for uid in row["crews"].split():
                 cursor.execute('''
-                INSERT OR IGNORE INTO mission_crew (mission_id, astronaut_uid)
-                VALUES (?, ?)
+                SELECT 1 FROM mission_crew WHERE mission_id = ? AND astronaut_uid = ?
                 ''', (mission_id, uid))
+                crew_exists = cursor.fetchone()
+
+                if not crew_exists:
+                    cursor.execute('''
+                    INSERT INTO mission_crew (mission_id, astronaut_uid)
+                    VALUES (?, ?)
+                    ''', (mission_id, uid))
+                    print(f" → Linked astronaut {uid} to mission {row['mid']}")
+                else:
+                    print(f" → Skipped existing crew link: {uid} in mission {row['mid']}")
 
 conn.commit()
 conn.close()
-print("✅ Mission data and crew links imported successfully.")
+print("✅ Mission import completed with duplicate checks.")
