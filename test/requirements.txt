@@ -1,0 +1,7 @@
+Flask==2.3.2
+gunicorn==21.2.0
+pandas==2.2.1
+plotly==5.22.0
+SQLAlchemy==2.0.29           # For DB abstraction (optional)
+requests==2.31.0             # For web requests
+numpy==1.26.4                # If using numerical operations

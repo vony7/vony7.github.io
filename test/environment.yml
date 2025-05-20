@@ -1,0 +1,15 @@
+name: flaskapp
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python=3.9
+  - flask
+  - pandas
+  - plotly
+  - pip
+  - pip:
+      - sqlalchemy       # Optional, only if using SQLAlchemy with SQLite
+      - gunicorn
+

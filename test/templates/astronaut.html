@@ -1,27 +1,27 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>{{ astronaut.name }} – Astronaut Profile</title>
-  <style>
+<meta charset="UTF-8">
+<title>{{ astronaut.name }} – Astronaut Profile</title>
+<style>
     body { font-family: Arial, sans-serif; background: #f4f4f4; padding: 20px; }
     .profile-card {
-      background: white;
-      max-width: 700px;
-      margin: auto;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    background: white;
+    max-width: 700px;
+    margin: auto;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
     }
     h1 { margin-top: 0; color: #800020; }
     .avatar {
-      float: right;
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      object-fit: cover;
-      margin-left: 20px;
-      border: 2px solid #ccc;
+    float: right;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-left: 20px;
+    border: 2px solid #ccc;
     }
     table { width: 100%; border-collapse: collapse; margin-top: 15px; }
     td { padding: 8px; }
@@ -31,10 +31,10 @@
     .missions ul { padding-left: 20px; }
     .missions li { margin-bottom: 6px; }
     .back-link { text-align: center; margin-top: 20px; }
-  </style>
+</style>
 </head>
 <body>
-  <div class="profile-card">
+<div class="profile-card">
     <img class="avatar"
         src="/static/images/astronauts/{{ astronaut.uid }}.jpg"
         onerror="this.onerror=null;this.src='/static/images/astronauts/{{ astronaut.uid }}.png';"
