@@ -159,7 +159,7 @@
                     onerror="this.src='{{ url_for('static', filename='images/astronauts/default.jpg') }}'">
 
                     <div>
-                        <h3><a href="/astronaut/{{ astronaut.uid }}">{{ astronaut.name }}</a></h3>
+                        <h3><a href="/astronauts/{{ astronaut.uid }}">{{ astronaut.name }}</a></h3>
                         <div>批次: 第{{ astronaut.group_id }}批</div>
                         <div>状态: {% if astronaut.status == 1 %}现役{% else %}退役{% endif %}</div>
                     </div>

@@ -33,7 +33,7 @@ def query_chinese_astronauts(gender=None, group=None):
     return results
 
 # -------------------- Chinese Astronaut List --------------------
-@app.route("/chinese")
+@app.route("/astronauts/")
 def chinese_astronauts():
     # Get filter and sort parameters
     gender = request.args.get("gender")
@@ -68,9 +68,9 @@ def chinese_astronauts():
         # Get missions for this astronaut
         cursor.execute(
             """
-            SELECT m.id, m.name, m.start, m.end 
+            SELECT m.mid, m.name, m.start, m.end 
             FROM missions m
-            JOIN mission_crew mc ON m.id = mc.mission_id
+            JOIN mission_crew mc ON m.mid = mc.mission_id
             WHERE mc.astronaut_uid = ?
         """,
             (astronaut["uid"],),
@@ -115,13 +115,13 @@ def chinese_astronauts():
                                 else:
                                     duration_display = f"{minutes}分钟"
             except Exception as e:
-                mission_id = mission["id"] if "id" in mission else "unknown"
+                mission_id = mission["mid"] if "mid" in mission else "unknown"
                 print(f"Date error for mission {mission_id}: {e}")
                 duration_display = "计算中"
 
             mission_list.append(
-                {
-                    "id": mission["id"],
+                {   "id":mission["id"],
+                    "mid": mission["mid"],
                     "name": mission["name"],
                     "duration_display": duration_display,
                     "duration_seconds": mission_seconds,
@@ -177,7 +177,7 @@ def chinese_astronauts():
 
 
 # -------------------- Astronaut Profile --------------------
-@app.route("/astronaut/<uid>")
+@app.route("/astronauts/<uid>")
 def astronaut_profile(uid):
     conn = sqlite3.connect("astronauts.db")
     conn.row_factory = sqlite3.Row
@@ -233,7 +233,7 @@ def astronaut_profile(uid):
 
 
 # -------------------- Missions Viewer --------------------
-@app.route("/missions")
+@app.route("/missions/")
 def mission_list():
     sort_by = request.args.get("sort_by", "start")  # default
     order = request.args.get("order", "desc")
@@ -324,19 +324,20 @@ def mission_list():
     )
 
 
-@app.route("/mission/<mission_id>")
-def mission_detail(mission_id):
+@app.route("/missions/<mid>")
+def mission_detail(mid):
     conn = sqlite3.connect("astronauts.db")
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
     # Get mission details
-    cursor.execute("SELECT * FROM missions WHERE id = ?", (mission_id,))
+    cursor.execute("SELECT * FROM missions WHERE mid = ?", (mid,))
     mission = cursor.fetchone()
 
     if not mission:
         conn.close()
         abort(404)
+    mission_id = mission["mid"]
 
     # Get crew members
     cursor.execute(
@@ -346,7 +347,7 @@ def mission_detail(mission_id):
         JOIN mission_crew mc ON a.uid = mc.astronaut_uid
         WHERE mc.mission_id = ?
     """,
-        (mission_id,),
+        (mid,),
     )
     crew = cursor.fetchall()
     # Enhanced duration calculation

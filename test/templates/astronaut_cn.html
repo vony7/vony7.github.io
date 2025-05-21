@@ -126,7 +126,7 @@
     <h1>中国航天员 (Chinese Astronauts)</h1>
 
     <div class="filter-section">
-      <form method="get" action="/chinese">
+      <form method="get" action="/astronauts/">
         <div class="filter-group">
           <label for="gender">性别:</label>
           <select name="gender" id="gender">
@@ -158,7 +158,7 @@
 
         <div class="filter-group">
           <button type="submit">筛选</button>
-          <a href="/chinese" style="margin-left: 10px;">重置</a>
+          <a href="/astronauts/" style="margin-left: 10px;">重置</a>
         </div>
       </form>
     </div>
@@ -196,7 +196,7 @@
         {% if astronauts %}
           {% for astro in astronauts %}
           <tr>
-            <td><a href="/astronaut/{{ astro.uid }}">{{ astro.name }}</a></td>
+            <td><a href="/astronauts/{{ astro.uid }}">{{ astro.name }}</a></td>
             <td>{{ astro.uid }}</td>
             <td>{{ '男' if astro.gender == 'm' else '女' }}</td>
             <td>{{ astro.DOB }}</td>
@@ -208,7 +208,7 @@
               {% if astro.missions %}
                 {% for mission in astro.missions %}
                 <div class="mission-item">
-                  <a href="/mission/{{ mission.id }}">{{ mission.name }}</a>
+                  <a href="/missions/{{ mission.mid }}">{{ mission.name }}</a>
                   ({{ mission.duration_display }})
                 </div>
                 {% endfor %}

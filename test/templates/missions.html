@@ -169,7 +169,7 @@
         <td>
         {% if mission.crew %}
             {% for person in mission.crew %}
-            <a href="/astronaut/{{ person.uid }}" style="color: #800020; font-weight: bold;">{{ person.name }}</a>
+            <a href="/astronauts/{{ person.uid }}" style="color: #800020; font-weight: bold;">{{ person.name }}</a>
             {% if not loop.last %}, {% endif %}
             {% endfor %}
         {% else %}
