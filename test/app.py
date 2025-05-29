@@ -2,8 +2,8 @@ from flask import Flask, render_template, request, abort
 from datetime import datetime, timezone, timedelta
 from dateutil import parser
 import sqlite3
-
-tz_utc8 = timezone(timedelta(hours=8))
+from pytz import timezone
+tz_utc8 = timezone("Asia/Shanghai")
 
 app = Flask(__name__)
 
@@ -12,25 +12,58 @@ def index():
     return "Hello, Flask is running on Render!"
 
 # -------------------- Helpers --------------------
-def query_chinese_astronauts(gender=None, group=None):
-    conn = sqlite3.connect("astronauts.db")
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
+def calculate_mission_duration(start_str, end_str):
+    """Helper function to calculate mission duration with timezone handling"""
+    if not start_str or start_str == "0":
+        return 0, "未开始", "future"
 
-    sql = "SELECT * FROM astronauts_cn WHERE 1=1"
-    params = []
+    try:
+        start_dt = parser.parse(start_str)
+        if not start_dt.tzinfo:
+            start_dt = start_dt.replace(tzinfo=tz_utc8)
+        
+        now = datetime.now(tz_utc8)
+        if start_dt > now:
+            return 0, "未开始", "future"
 
-    if gender:
-        sql += " AND gender = ?"
-        params.append(gender)
-    if group:
-        sql += " AND group_id = ?"
-        params.append(group)
+        if end_str and end_str != "0":
+            end_dt = parser.parse(end_str)
+            if not end_dt.tzinfo:
+                end_dt = end_dt.replace(tzinfo=tz_utc8)
+            if end_dt > now:
+                end_dt = now
+                status = "ongoing"
+            else:
+                status = "completed"
+        else:
+            end_dt = now
+            status = "ongoing"
 
-    cursor.execute(sql, params)
-    results = cursor.fetchall()
-    conn.close()
-    return results
+        duration = end_dt - start_dt
+        total_seconds = duration.total_seconds()
+        
+        # Format duration display
+        if duration.days > 0:
+            days = duration.days
+            hours = int(duration.seconds / 3600)
+            display = f"{days}天"
+            if hours > 0:
+                display += f" {hours}小时"
+        else:
+            hours = int(total_seconds // 3600)
+            minutes = int((total_seconds % 3600) // 60)
+            if hours > 0:
+                display = f"{hours}小时"
+                if minutes > 0:
+                    display += f" {minutes}分钟"
+            else:
+                display = f"{minutes}分钟"
+        
+        return total_seconds, display, status
+        
+    except Exception as e:
+        print(f"Duration calculation error: {e}")
+        return 0, "计算错误", "error"
 
 # -------------------- Chinese Astronaut List --------------------
 @app.route("/astronauts/")
@@ -46,90 +79,68 @@ def chinese_astronauts():
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # Base query
-    sql = "SELECT * FROM astronauts_cn WHERE 1=1"
+    # Fixed JOIN condition (id instead of mid)
+    sql = """
+        SELECT a.*, m.name AS mission_name, m.mid, m.start, m.end
+        FROM astronauts_cn a
+        LEFT JOIN mission_crew mc ON a.uid = mc.astronaut_uid
+        LEFT JOIN missions m ON mc.mission_id = m.id
+        WHERE 1=1
+    """
+    
     params = []
 
     if gender:
-        sql += " AND gender = ?"
+        sql += " AND a.gender = ?"
         params.append(gender)
     if search:
-        sql += " AND (name LIKE ? OR uid LIKE ?)"
+        sql += " AND (a.name LIKE ? OR a.uid LIKE ?)"
         params.extend([f"%{search}%", f"%{search}%"])
     if group:
-        sql += " AND group_id = ?"
+        sql += " AND a.group_id = ?"
         params.append(group)
 
     cursor.execute(sql, params)
-    astronauts = cursor.fetchall()
+    rows = cursor.fetchall()
 
-    enhanced_astronauts = []
-    for astronaut in astronauts:
-        # Get missions for this astronaut
-        cursor.execute(
-            """
-            SELECT m.mid, m.name, m.start, m.end 
-            FROM missions m
-            JOIN mission_crew mc ON m.mid = mc.mission_id
-            WHERE mc.astronaut_uid = ?
-        """,
-            (astronaut["uid"],),
-        )
-        missions = cursor.fetchall()
-
-        total_seconds = 0
-        mission_list = []
-
-        for mission in missions:
-            mission_seconds = 0
-            duration_display = "-"
-
-            try:
-                if mission["start"] and mission["start"] != "0":
-                    # Parse dates with timezone awareness
-                    start_dt = parser.parse(mission["start"])
-                    if not start_dt.tzinfo:
-                        start_dt = start_dt.replace(tzinfo=tz_utc8).replace(tzinfo=None)
-
-                    if mission["end"] and mission["end"] != "0":
-                        end_dt = parser.parse(mission["end"])
-                        if not end_dt.tzinfo:
-                            end_dt = end_dt.replace(tzinfo=tz_utc8).replace(tzinfo=None)
-                    else:
-                        end_dt = datetime.now(tz_utc8).replace(tzinfo=None)
-
-                    if start_dt and end_dt:
-                        duration = end_dt - start_dt
-                        mission_seconds = duration.total_seconds()
-                        total_seconds += mission_seconds  # Accumulate total
-
-                        # Format display
-                        if mission_seconds > 0:
-                            if duration.days >= 1:
-                                duration_display = f"{duration.days}天"
-                            else:
-                                hours = int(mission_seconds // 3600)
-                                minutes = int((mission_seconds % 3600) // 60)
-                                if hours > 0:
-                                    duration_display = f"{hours}小时"
-                                else:
-                                    duration_display = f"{minutes}分钟"
-            except Exception as e:
-                mission_id = mission["mid"] if "mid" in mission else "unknown"
-                print(f"Date error for mission {mission_id}: {e}")
-                duration_display = "计算中"
-
-            mission_list.append(
-                {   "id":mission["id"],
-                    "mid": mission["mid"],
-                    "name": mission["name"],
-                    "duration_display": duration_display,
-                    "duration_seconds": mission_seconds,
-                }
+    # Group missions by astronaut
+    astronauts_map = {}
+    for row in rows:
+        uid = row["uid"]
+        if uid not in astronauts_map:
+            astronauts_map[uid] = {
+                "uid": uid,
+                "name": row["name"],
+                "gender": row["gender"],
+                "DOB": row["DOB"],
+                "group_id": row["group_id"],
+                "missions": [],
+                "total_seconds": 0
+            }
+        
+        if row["mid"]:  # Only add if mission exists
+            total_seconds, duration_display, status = calculate_mission_duration(
+                row["start"], row["end"]
             )
+            
+            # Only accumulate completed/ongoing missions
+            if status in ["completed", "ongoing"]:
+                astronauts_map[uid]["total_seconds"] += total_seconds
+            
+            astronauts_map[uid]["missions"].append({
+                "mid": row["mid"],
+                "name": row["mission_name"],
+                "duration_display": duration_display,
+                "duration_seconds": total_seconds,
+                "status": status
+            })
 
-        # Calculate total time display
-        total_display = "0天"
+    # Convert to list and calculate total display
+    enhanced_astronauts = []
+    for astronaut in astronauts_map.values():
+        total_seconds = astronaut["total_seconds"]
+        
+        # Format total display
         if total_seconds > 0:
             total_days = int(total_seconds // 86400)
             remaining_seconds = total_seconds % 86400
@@ -146,13 +157,11 @@ def chinese_astronauts():
                     total_display = f"{hours}小时"
                 else:
                     total_display = f"{minutes}分钟"
-
-        enhanced_astronaut = dict(astronaut)
-        enhanced_astronaut["missions"] = mission_list
-        enhanced_astronaut["total_mission_time"] = total_display
-        enhanced_astronaut["total_seconds"] = total_seconds
-
-        enhanced_astronauts.append(enhanced_astronaut)
+        else:
+            total_display = "0天"
+            
+        astronaut["total_mission_time"] = total_display
+        enhanced_astronauts.append(astronaut)
 
     # Sorting
     reverse = order == "desc"
@@ -189,7 +198,7 @@ def astronaut_profile(uid):
     if not astronaut:
         return "Astronaut not found", 404
 
-    # Missions
+    # Missions - Fixed JOIN condition (id instead of mid)
     cursor.execute(
         """
         SELECT m.name, m.mid, m.start, m.end
@@ -197,28 +206,21 @@ def astronaut_profile(uid):
         JOIN mission_crew mc ON m.id = mc.mission_id
         WHERE mc.astronaut_uid = ?
         ORDER BY m.start DESC
-    """,
+        """,
         (uid,),
     )
     all_missions = cursor.fetchall()
 
     past_missions, future_missions = [], []
     for m in all_missions:
+        total_seconds, duration_display, status = calculate_mission_duration(
+            m["start"], m["end"]
+        )
         m_dict = dict(m)
-        is_future = not m["start"] or m["start"] == "0"
-
-        if m["start"] and m["start"] != "0":
-            try:
-                start_dt = parser.parse(m["start"])
-                if m["end"] and m["end"] != "0":
-                    end_dt = parser.parse(m["end"])
-                else:
-                    end_dt = datetime.now(tz_utc8).replace(tzinfo=None)
-                m_dict["duration"] = (end_dt - start_dt).days
-            except Exception:
-                m_dict["duration"] = None
-
-        if is_future:
+        m_dict["duration"] = duration_display
+        m_dict["status"] = status
+        
+        if status == "future":
             future_missions.append(m_dict)
         else:
             past_missions.append(m_dict)
@@ -253,47 +255,24 @@ def mission_list():
 
     mission_data = []
     for m in missions:
-        # Crew query remains the same
+        # Get crew
         cursor.execute(
             """
             SELECT a.name, a.uid
             FROM mission_crew mc
             JOIN astronauts_cn a ON mc.astronaut_uid = a.uid
             WHERE mc.mission_id = ?
-        """,
+            """,
             (m["id"],),
         )
         crew = cursor.fetchall()
 
-        # Duration calculation
-        duration_seconds = 0
-        duration_display = "-"
+        # Use helper for duration calculation
+        total_seconds, duration_display, status = calculate_mission_duration(
+            m["start"], m["end"]
+        )
+        
         end_date = m["end"] or "进行中"
-
-        try:
-            if m["start"] and m["start"] != "0":
-                start_dt = parser.parse(m["start"])
-                if m["end"] and m["end"] != "0":
-                    end_dt = parser.parse(m["end"])
-                else:
-                    end_dt = datetime.now(tz_utc8).replace(tzinfo=None)
-
-                if start_dt and end_dt:
-                    duration = end_dt - start_dt
-                    duration_seconds = duration.total_seconds()
-                    if duration_seconds > 0:
-                        if duration.days >= 1:
-                            duration_display = f"{duration.days}天"
-                        else:
-                            hours = int(duration_seconds // 3600)
-                            minutes = int((duration_seconds % 3600) // 60)
-                            if hours > 0:
-                                duration_display = f"{hours}小时"
-                            else:
-                                duration_display = f"{minutes}分钟"
-        except Exception as e:
-            print(f"Date parsing error: {e}")
-
         mission_data.append(
             {
                 "name": m["name"],
@@ -302,17 +281,25 @@ def mission_list():
                 "start": m["start"],
                 "end": end_date,
                 "duration_display": duration_display,
-                "duration_seconds": duration_seconds,  # For sorting
+                "duration_seconds": total_seconds,
                 "crew": crew,
+                "status": status
             }
         )
 
-    # Update sorting to use duration_seconds
+    # Sorting
     reverse = order == "desc"
     if sort_by == "duration":
         mission_data.sort(key=lambda m: m["duration_seconds"], reverse=reverse)
     elif sort_by in ("start", "end"):
-        mission_data.sort(key=lambda m: m[sort_by] or "", reverse=reverse)
+        # Handle empty values by sorting them last
+        mission_data.sort(
+            key=lambda m: (
+                m[sort_by] if m[sort_by] and m[sort_by] != "0" 
+                else "9999-12-31" if sort_by == "start" else ""
+            ), 
+            reverse=reverse
+        )
 
     conn.close()
     return render_template(
@@ -337,7 +324,7 @@ def mission_detail(mid):
     if not mission:
         conn.close()
         abort(404)
-    mission_id = mission["mid"]
+    mission_id = mission["id"]
 
     # Get crew members
     cursor.execute(
@@ -346,69 +333,28 @@ def mission_detail(mid):
         FROM astronauts_cn a
         JOIN mission_crew mc ON a.uid = mc.astronaut_uid
         WHERE mc.mission_id = ?
-    """,
-        (mid,),
+        """,
+        (mission_id,),
     )
     crew = cursor.fetchall()
-    # Enhanced duration calculation
+    
+    # Enhanced duration calculation using helper
+    total_seconds, duration_display, status = calculate_mission_duration(
+        mission["start"], mission["end"]
+    )
+    
     duration_info = {
-        "days": 0,
-        "hours": 0,
-        "minutes": 0,
-        "seconds": 0,
-        "is_ongoing": False,
-        "display": "待计算",
+        "display": duration_display,
+        "status": status
     }
-
-    try:
-        if mission["start"] and mission["start"] != "0":
-            start_dt = parser.parse(mission["start"])
-            if not start_dt.tzinfo:
-                start_dt = start_dt.replace(tzinfo=tz_utc8)
-
-            # Determine end time (current time if ongoing)
-            if mission["end"] and mission["end"] != "0":
-                end_dt = parser.parse(mission["end"])
-                if not end_dt.tzinfo:
-                    end_dt = end_dt.replace(tzinfo=tz_utc8)
-            else:
-                end_dt = datetime.now(tz_utc8)
-                duration_info["is_ongoing"] = True
-
-            if start_dt and end_dt:
-                delta = end_dt - start_dt
-                total_seconds = delta.total_seconds()
-
-                # Calculate breakdown
-                duration_info["days"] = int(total_seconds // 86400)
-                remaining_seconds = total_seconds % 86400
-                duration_info["hours"] = int(remaining_seconds // 3600)
-                remaining_seconds %= 3600
-                duration_info["minutes"] = int(remaining_seconds // 60)
-                duration_info["seconds"] = int(remaining_seconds % 60)
-
-                # Format display
-                if duration_info["days"] > 0:
-                    duration_info["display"] = (
-                        f"{duration_info['days']}天 {duration_info['hours']}小时"
-                    )
-                elif duration_info["hours"] > 0:
-                    duration_info["display"] = (
-                        f"{duration_info['hours']}小时 {duration_info['minutes']}分钟"
-                    )
-                else:
-                    duration_info["display"] = f"{duration_info['minutes']}分钟"
-
-                if duration_info["is_ongoing"]:
-                    duration_info["display"] += " (进行中)"
-
-    except Exception as e:
-        print(f"Duration calculation error: {e}")
 
     conn.close()
 
     return render_template(
-        "mission_detail.html", mission=mission, crew=crew, duration=duration_info
+        "mission_detail.html", 
+        mission=mission, 
+        crew=crew, 
+        duration=duration_info
     )
 
 

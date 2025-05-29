@@ -110,6 +110,25 @@
       font-weight: bold;
       color: #800020;
     }
+    /* Mission status indicators */
+    .mission-status {
+      font-size: 0.8em;
+      padding: 2px 5px;
+      border-radius: 3px;
+      margin-left: 5px;
+    }
+    .status-completed {
+      background-color: #e0ffe0;
+      color: #006400;
+    }
+    .status-ongoing {
+      background-color: #fff8e0;
+      color: #8a6d3b;
+    }
+    .status-future {
+      background-color: #e0f7ff;
+      color: #0d47a1;
+    }
     /* Column width controls */
     .col-name { width: 15%; }
     .col-uid { width: 10%; }
@@ -166,14 +185,43 @@
     <table>
       <thead>
         <tr>
-          <th class="col-name">姓名</th>
+          <th class="col-name">
+            <a href="{{ url_for('chinese_astronauts', 
+                gender=request.args.get('gender'), 
+                search=request.args.get('search'), 
+                group=request.args.get('group'), 
+                sort_by='name', 
+                order='asc' if not (request.args.get('sort_by') == 'name' and request.args.get('order') == 'asc') else 'desc') }}"
+              style="color: white; text-decoration: none;">
+              姓名
+              {% if request.args.get('sort_by') == 'name' %}
+                <span class="sort-arrow">
+                  {% if request.args.get('order') == 'asc' %}↑{% else %}↓{% endif %}
+                </span>
+              {% endif %}
+            </a>
+          </th>
           <th class="col-uid">UID</th>
           <th class="col-gender">性别</th>
           <th class="col-dob">出生日期</th>
-          <th class="col-group">批次</th>
+          <th class="col-group">
+            <a href="{{ url_for('chinese_astronauts', 
+                gender=request.args.get('gender'), 
+                search=request.args.get('search'), 
+                group=request.args.get('group'), 
+                sort_by='group', 
+                order='asc' if not (request.args.get('sort_by') == 'group' and request.args.get('order') == 'asc') else 'desc') }}"
+              style="color: white; text-decoration: none;">
+              批次
+              {% if request.args.get('sort_by') == 'group' %}
+                <span class="sort-arrow">
+                  {% if request.args.get('order') == 'asc' %}↑{% else %}↓{% endif %}
+                </span>
+              {% endif %}
+            </a>
+          </th>
           <th class="col-status">状态</th>
           <th class="col-missions">执行任务</th>
-          <!-- In the table header section, modify the last column -->
           <th class="col-total">
             <a href="{{ url_for('chinese_astronauts', 
                 gender=request.args.get('gender'), 
@@ -182,7 +230,7 @@
                 sort_by='total', 
                 order='asc' if not (request.args.get('sort_by') == 'total' and request.args.get('order') == 'asc') else 'desc') }}"
               style="color: white; text-decoration: none;">
-              太空总时长(天)
+              太空总时长
               {% if request.args.get('sort_by') == 'total' %}
                 <span class="sort-arrow">
                   {% if request.args.get('order') == 'asc' %}↑{% else %}↓{% endif %}
@@ -204,12 +252,20 @@
             <td class="{% if astro.status == 1 %}status-active{% else %}status-retired{% endif %}">
               {{ '现役' if astro.status == 1 else '退役' }}
             </td>
+
+
             <td class="mission-list">
               {% if astro.missions %}
                 {% for mission in astro.missions %}
                 <div class="mission-item">
                   <a href="/missions/{{ mission.mid }}">{{ mission.name }}</a>
                   ({{ mission.duration_display }})
+                  <span class="mission-status status-{{ mission.status }}">
+                    {% if mission.status == 'completed' %}已完成
+                    {% elif mission.status == 'ongoing' %}进行中
+                    {% elif mission.status == 'future' %}计划中
+                    {% endif %}
+                  </span>
                 </div>
                 {% endfor %}
               {% else %}
@@ -217,7 +273,7 @@
               {% endif %}
             </td>
             <td class="total-time">
-              {{ astro.total_mission_time or '0' }}
+              {{ astro.total_mission_time }}
             </td>
           </tr>
           {% endfor %}
