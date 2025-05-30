@@ -115,7 +115,8 @@ def chinese_astronauts():
                 "DOB": row["DOB"],
                 "group_id": row["group_id"],
                 "missions": [],
-                "total_seconds": 0
+                "total_seconds": 0,
+                "status":row["status"]
             }
         
         if row["mid"]:  # Only add if mission exists
