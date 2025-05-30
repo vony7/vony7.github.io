@@ -79,6 +79,25 @@
     .mission-title {
       flex-grow: 1;
     }
+        /* Mission status indicators */
+    .mission-status {
+      font-size: 0.8em;
+      padding: 2px 5px;
+      border-radius: 3px;
+      margin-left: 5px;
+    }
+    .status-completed {
+      background-color: #e0ffe0;
+      color: #006400;
+    }
+    .status-ongoing {
+      background-color: #fff8e0;
+      color: #8a6d3b;
+    }
+    .status-future {
+      background-color: #e0f7ff;
+      color: #0d47a1;
+    }
     .live-duration {
       color: #d9534f;
       font-weight: bold;
@@ -137,9 +156,9 @@
       <div class="info-row">
         <div class="info-label">任务状态:</div>
         <div>
-          {% if mission.status == 'completed' %}已完成
-          {% elif mission.status == 'ongoing' %}<span class="ongoing">执行中</span>
-          {% elif mission.status == 'future' %}<span class="ongoing">计划中</span>
+          {% if duration.status == 'completed' %}已完成
+          {% elif duration.status == 'ongoing' %}<span class="ongoing">执行中</span>
+          {% elif duration.status == 'future' %}<span class="ongoing">计划中</span>
           {% endif %}
         </div>
       </div>
