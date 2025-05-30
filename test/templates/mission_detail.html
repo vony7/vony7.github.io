@@ -84,6 +84,14 @@
       font-weight: bold;
       margin-left: 5px;
     }
+    .crew-photo {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 1px solid #ccc;
+  }
+
     @media (max-width: 600px) {
       .mission-header {
         flex-direction: column;
@@ -143,9 +151,11 @@
         {% for astronaut in crew %}
         <div class="crew-member">
           <img class="crew-photo"
-               src="{{ url_for('static', filename='images/astronauts/' ~ astronaut.uid|string ~ '.jpg') }}"
-               alt="{{ astronaut.name }} 照片"
-               onerror="this.src='{{ url_for('static', filename='images/astronauts/default.jpg') }}'">
+            src="{{ astronaut.photo_url }}"
+            alt="{{ astronaut.name }} 照片"
+            onerror="this.src='/static/images/astronauts/default.jpg'">
+
+
           <div>
             <h3><a href="/astronauts/{{ astronaut.uid }}">{{ astronaut.name }}</a></h3>
             <div>批次: 第{{ astronaut.group_id }}批</div>

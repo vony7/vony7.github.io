@@ -3,6 +3,8 @@ from datetime import datetime, timezone, timedelta
 from dateutil import parser
 import sqlite3
 from pytz import timezone
+import os 
+
 tz_utc8 = timezone("Asia/Shanghai")
 
 app = Flask(__name__)
@@ -64,6 +66,17 @@ def calculate_mission_duration(start_str, end_str):
     except Exception as e:
         print(f"Duration calculation error: {e}")
         return 0, "计算错误", "error"
+    
+def resolve_astronaut_photo(uid):
+    base_dir = os.path.join(app.root_path, "static", "images", "astronauts")
+    jpg = os.path.join(base_dir, f"{uid}.jpg")
+    png = os.path.join(base_dir, f"{uid}.png")
+    if os.path.exists(jpg):
+        return f"/static/images/astronauts/{uid}.jpg"
+    elif os.path.exists(png):
+        return f"/static/images/astronauts/{uid}.png"
+    else:
+        return "/static/images/astronauts/default.jpg"
 
 # -------------------- Chinese Astronaut List --------------------
 @app.route("/astronauts/")
@@ -116,7 +129,9 @@ def chinese_astronauts():
                 "group_id": row["group_id"],
                 "missions": [],
                 "total_seconds": 0,
-                "status":row["status"]
+                "status":row["status"],
+                "photo_url": resolve_astronaut_photo(uid),
+
             }
         
         if row["mid"]:  # Only add if mission exists
@@ -133,7 +148,7 @@ def chinese_astronauts():
                 "name": row["mission_name"],
                 "duration_display": duration_display,
                 "duration_seconds": total_seconds,
-                "status": status
+                "status": status,
             })
 
     # Convert to list and calculate total display
@@ -337,7 +352,14 @@ def mission_detail(mid):
         """,
         (mission_id,),
     )
-    crew = cursor.fetchall()
+    crew_rows = cursor.fetchall()
+    crew = []
+    for row in crew_rows:
+        row = dict(row)
+        row["photo_url"] = resolve_astronaut_photo(row["uid"])
+        crew.append(row)
+
+        
     
     # Enhanced duration calculation using helper
     total_seconds, duration_display, status = calculate_mission_duration(

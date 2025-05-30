@@ -131,6 +131,17 @@
     }
     /* Column width controls */
     .col-name { width: 15%; }
+    .col-photo {
+      width: 80px;
+    }
+    .astro-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid #ccc;
+    }
+
     .col-uid { width: 10%; }
     .col-gender { width: 8%; }
     .col-dob { width: 12%; }
@@ -201,6 +212,7 @@
               {% endif %}
             </a>
           </th>
+          <th class="col-photo">照片</th>
           <th class="col-uid">UID</th>
           <th class="col-gender">性别</th>
           <th class="col-dob">出生日期</th>
@@ -245,6 +257,11 @@
           {% for astro in astronauts %}
           <tr>
             <td><a href="/astronauts/{{ astro.uid }}">{{ astro.name }}</a></td>
+            <td>
+              <img class="astro-thumb" src="{{ astro.photo_url }}" alt="{{ astro.name }} 照片"
+                  onerror="this.src='/static/images/astronauts/default.jpg';">
+            </td>
+
             <td>{{ astro.uid }}</td>
             <td>{{ '男' if astro.gender == 'm' else '女' }}</td>
             <td>{{ astro.DOB }}</td>
