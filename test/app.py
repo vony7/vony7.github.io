@@ -60,7 +60,7 @@ def calculate_mission_duration(start_str, end_str):
                     display += f" {minutes}分钟"
             else:
                 display = f"{minutes}分钟"
-        print(status)
+        # print(status)
         return total_seconds, display, status
         
     except Exception as e:
