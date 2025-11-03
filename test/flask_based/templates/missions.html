@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+
+{% block title %}任务列表 - 中国航天数据库{% endblock %}
+
+{% block content %}
+  <h1>所有飞行任务</h1>
+  <p>按类型筛选: 
+    <a href="{{ url_for('mission_list', type='Manned') }}">载人</a> | 
+    <a href="{{ url_for('mission_list', type='Cargo') }}">货运</a> |
+    <a href="{{ url_for('mission_list') }}">所有</a>
+  </p>
+
+  <style>
+    .missions-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .missions-table th, .missions-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    .missions-table th { background-color: #f2f2f2; }
+    .missions-table tr:hover { background-color: #f9f9f9; }
+  </style>
+
+  <table class="missions-table">
+    <thead>
+      <tr>
+        <th>任务名称</th>
+        <th>类型</th>
+        <th>开始时间</th>
+        <th>状态</th>
+        <th>时长</th>
+        <th>乘组</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in missions %}
+      <tr>
+        <td><a href="{{ url_for('mission_detail', mid=m.mid) }}"><b>{{ m.name }}</b></a></td>
+        <td>{{ m.type }}</td>
+        <td>{{ m.start }}</td>
+        <td>{{ m.status }}</td>
+        <td>{{ m.duration_display }}</td>
+        <td>
+          {% for astronaut in m.crew %}
+            <a href="{{ url_for('astronaut_profile', uid=astronaut.uid) }}">{{ astronaut.name }}</a>{% if not loop.last %}, {% endif %}
+          {% else %}
+            N/A
+          {% endfor %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+{% endblock %}

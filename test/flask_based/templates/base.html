@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}中国航天{% endblock %}</title>
+  <style>
+    /* Your main site-wide styles */
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9f9f9;
+      padding: 20px 0; /* Add padding only to top/bottom */
+      line-height: 1.6;
+      margin: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      min-height: 100vh;
+    }
+    a {
+      color: #800020;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    h1 {
+      color: #800020;
+    }
+
+    /* --- NEW NAVIGATION BAR STYLES --- */
+    .navbar {
+      background-color: #800020; /* Your theme color */
+      padding: 10px 20px;
+      border-radius: 4px;
+      margin-bottom: 25px;
+    }
+    .navbar ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+    }
+    .navbar li {
+      margin-right: 20px;
+    }
+    .navbar a {
+      color: white;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 1.1em;
+    }
+    .navbar a:hover {
+      text-decoration: underline;
+    }
+    /* --- End Nav Styles --- */
+
+    /* Import all other styles from your mission_detail.html */
+    /* (I'm skipping them here for brevity) */
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <nav class="navbar">
+      <ul>
+        <li><a href="{{ url_for('index') }}">主页</a></li>
+        <li><a href="{{ url_for('mission_list') }}">飞行任务</a></li>
+        <li><a href="{{ url_for('chinese_astronauts') }}">航天员</a></li>
+      </ul>
+    </nav>
+    {% block content %}
+    {% endblock %}
+      </div>
+</body>
+</html>

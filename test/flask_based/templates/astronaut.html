@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ astronaut.name }} – 航天员档案{% endblock %}
+
+{% block content %}
+    <style>
+    .profile-card {
+      background: white;
+      max-width: 700px;
+      margin: auto;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .avatar {
+      float: right;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      margin-left: 20px;
+      border: 2px solid #ccc;
+    }
+    .profile-card table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+    .profile-card td {
+      padding: 8px;
+    }
+    .profile-card td.label {
+      font-weight: bold;
+      width: 30%;
+      background: #eee;
+    }
+    .missions {
+      margin-top: 30px;
+    }
+    .missions h2 {
+      margin-bottom: 10px;
+      color: #800020;
+    }
+    .missions ul {
+      padding-left: 20px;
+    }
+    .missions li {
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+    .mission-status {
+      font-size: 0.75em;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-left: 8px;
+    }
+    .status-completed {
+      background-color: #e0ffe0;
+      color: #006400;
+    }
+    .status-ongoing {
+      background-color: #fff8e0;
+      color: #8a6d3b;
+    }
+    .status-future {
+      background-color: #e0f7ff;
+      color: #0d47a1;
+    }
+    .back-link {
+      text-align: center;
+      margin-top: 30px;
+    }
+    .back-link a {
+      color: #800020;
+      text-decoration: none;
+      font-weight: bold;
+    }
+  </style>
+
+  <div class="profile-card">
+        <img class="avatar"
+         src="{{ url_for('static', filename='images/astronauts/' ~ astronaut.uid ~ '.jpg') }}"
+         onerror="this.onerror=null; this.src='{{ url_for('static', filename='images/astronauts/' ~ astronaut.uid ~ '.png')}}'; this.onerror=function() { this.src='{{ url_for('static', filename='images/astronauts/default.jpg') }}'; };"
+         alt="{{ astronaut.name }}">
+
+    <h1>{{ astronaut.name }}</h1>
+    <table>
+      <tr><td class="label">UID</td><td>{{ astronaut.uid }}</td></tr>
+      <tr><td class="label">性别</td><td>{{ '男' if astronaut.gender == 'm' else '女' }}</td></tr>
+      <tr><td class="label">出生日期</td><td>{{ astronaut.DOB }}</td></tr>
+      <tr><td class="label">服役批次</td><td>第{{ astronaut.group_id }}批</td></tr>
+      <tr><td class="label">服役状态</td><td>{{ '现役' if astronaut.status == 1 else '退役' }}</td></tr>
+      <tr style="font-weight: bold; color: #800020;">
+        <td class="label" style="background: #eee;">太空总时长</td>
+        <td>{{ total_mission_time }}</td>
+      </tr>
+    </table>
+
+    {% if future_missions %}
+    <div class="missions">
+      <h2>计划任务</h2>
+      <ul>
+        {% for m in future_missions %}
+        <li>
+          <a href="{{ url_for('mission_detail', mid=m.mid) }}">{{ m.name }}</a>
+          （发射时间：{{ m.start }}）
+          <span class="mission-status status-{{ m.status }}">计划中</span>
+        </li>
+        {% endfor %}
+   </ul>
+    </div>
+    {% endif %}
+
+    {% if past_missions %}
+    <div class="missions">
+      <h2>执行任务</h2>
+      <ul>
+        {% for m in past_missions %}
+        <li>
+          <a href="{{ url_for('mission_detail', mid=m.mid) }}">{{ m.name }}</a>（{{ m.start }} – {{ m.end or '进行中' }}）
+          {% if m.duration %}
+            - {{ m.duration }}
+          {% endif %}
+          <span class="mission-status status-{{ m.status }}">
+            {% if m.status == 'completed' %}已完成
+            {% elif m.status == 'ongoing' %}进行中
+            {% endif %}
+          </span>
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+
+    <div class="back-link">
+      <a href="{{ url_for('chinese_astronauts') }}">&larr; 返回航天员列表</a>
+    </div>
+  </div>
+{% endblock %}

@@ -31,7 +31,7 @@ class Mission {
             this.end = Date.parse(new Date().toLocaleString("en-US", { timeZone: "Asia/Shanghai" }));
         } else {
             this.end = Date.parse(_end);
-        }
+        } bn
         this.duration = this.end - this.start;
         this.crews = _crew;
         console.log("this.crews: ", this.crews);
