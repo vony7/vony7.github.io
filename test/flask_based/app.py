@@ -469,12 +469,12 @@ def mission_list():
 
     conn.close()
     return render_template(
-        "missions.html",
-        missions=mission_data,
-        selected_type=mission_type,
-        sort_by=sort_by,
-        order=order,
-    )
+                "missions.html",
+                missions=mission_data,
+                selected_type=mission_type,
+                sort_by=sort_by,
+                order=order,
+        )
 
 
 @app.route("/missions/<mid>")

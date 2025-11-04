@@ -3,28 +3,81 @@
 {% block title %}任务列表 - 中国航天数据库{% endblock %}
 
 {% block content %}
-  <h1>所有飞行任务</h1>
-  <p>按类型筛选: 
-    <a href="{{ url_for('mission_list', type='Manned') }}">载人</a> | 
-    <a href="{{ url_for('mission_list', type='Cargo') }}">货运</a> |
-    <a href="{{ url_for('mission_list') }}">所有</a>
-  </p>
-
   <style>
     .missions-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    .missions-table th, .missions-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    .missions-table th, .missions-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }    
     .missions-table th { background-color: #f2f2f2; }
     .missions-table tr:hover { background-color: #f9f9f9; }
+    .filter-bar {
+      padding: 10px;
+      background: #f9f9f9;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .filter-bar a {
+      margin-right: 15px;
+      font-weight: bold;
+    }
+    .filter-bar a.active {
+      text-decoration: underline;
+      color: #000;
+    }
   </style>
+
+  <h1>所有飞行任务</h1>
+
+  <div class="filter-bar">
+    <span>按类型筛选:</span>
+    
+    <a href="{{ url_for('mission_list') }}"
+       class="{% if not selected_type %}active{% endif %}">
+       所有
+    </a>
+    
+    <a href="{{ url_for('mission_list', type='载人') }}"
+       class="{% if selected_type == 'crew' %}active{% endif %}">
+       载人
+    </a>
+    
+    <a href="{{ url_for('mission_list', type='货运') }}"
+       class="{% if selected_type == 'Cargo' %}active{% endif %}">
+       货运
+    </a>
+    
+    <a href="{{ url_for('mission_list', type='测试') }}"
+       class="{% if selected_type == 'Unmanned Test' %}active{% endif %}">
+       测试
+    </a>
+
+        <a href="{{ url_for('mission_list', type='舱段') }}"
+       class="{% if selected_type == 'Module' %}active{% endif %}">
+       舱段
+    </a>
+  </div>
+
 
   <table class="missions-table">
     <thead>
       <tr>
         <th>任务名称</th>
         <th>类型</th>
-        <th>开始时间</th>
+<th>
+          <a href="{{ url_for('mission_list', type=selected_type, sort_by='start', order='asc' if not (sort_by == 'start' and order == 'asc') else 'desc') }}">
+            开始时间
+            {% if sort_by == 'start' %}
+              <span class="sort-arrow">{% if order == 'asc' %}↑{% else %}↓{% endif %}</span>
+            {% endif %}
+          </a>
+        </th>
         <th>状态</th>
-        <th>时长</th>
+<th>
+          <a href="{{ url_for('mission_list', type=selected_type, sort_by='duration', order='asc' if not (sort_by == 'duration' and order == 'asc') else 'desc') }}">
+            时长
+            {% if sort_by == 'duration' %}
+              <span class="sort-arrow">{% if order == 'asc' %}↑{% else %}↓{% endif %}</span>
+            {% endif %}
+          </a>
+        </th>
         <th>乘组</th>
       </tr>
     </thead>
@@ -34,7 +87,12 @@
         <td><a href="{{ url_for('mission_detail', mid=m.mid) }}"><b>{{ m.name }}</b></a></td>
         <td>{{ m.type }}</td>
         <td>{{ m.start }}</td>
-        <td>{{ m.status }}</td>
+        <td>
+          {% if m.status == 'completed' %}已完成
+          {% elif m.status == 'ongoing' %}执行中
+          {% elif m.status == 'future' %}计划中
+          {% endif %}
+        </td>
         <td>{{ m.duration_display }}</td>
         <td>
           {% for astronaut in m.crew %}

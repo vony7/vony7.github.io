@@ -13,40 +13,42 @@
     .form-group input[readonly] { background-color: #eee; cursor: not-allowed; }
   </style>
 
-  <h1>Edit Mission: {{ mission.name }}</h1>
+  <h1>编辑任务: {{ mission.name }}</h1>
   
   <form class="admin-form" action="" method="POST">
     
     <div class="form-group">
-      <label for="name">Mission Name</label>
+      <label for="name">任务名称</label>
       <input type="text" id="name" name="name" value="{{ mission.name }}" required>
     </div>
     
     <div class="form-group">
-      <label for="mid">Mission ID (Cannot be changed)</label>
+      <label for="mid">任务 ID (Cannot be changed)</label>
       <input type="text" id="mid" name="mid" value="{{ mission.mid }}" readonly>
     </div>
     
     <div class="form-group">
       <label for="type">Type</label>
       <select id="type" name="type">
-        <option value="Manned" {% if mission.type == 'Manned' %}selected{% endif %}>Manned</option>
-        <option value="Cargo" {% if mission.type == 'Cargo' %}selected{% endif %}>Cargo</option>
-        <option value="Unmanned Test" {% if mission.type == 'Unmanned Test' %}selected{% endif %}>Unmanned Test</option>
+        <option value="载人" {% if mission.type == 'Manned' %}selected{% endif %}>载人</option>
+        <option value="货运" {% if mission.type == 'Cargo' %}selected{% endif %}>货运</option>
+        <option value="测试" {% if mission.type == 'Unmanned Test' %}selected{% endif %}>测试</option>
+        <option value="舱段" {% if mission.type == 'module' %}selected{% endif %}>舱段</option>
+
       </select>
     </div>
     
     <div class="form-group">
-      <label for="start">Start Time (YYYY-MM-DD HH:MM:SS)</label>
+      <label for="start">开始时间 (YYYY-MM-DD HH:MM:SS)</label>
       <input type="text" id="start" name="start" value="{{ mission.start or '' }}">
     </div>
 
     <div class="form-group">
-      <label for="end">End Time (Leave blank if ongoing)</label>
+      <label for="end">结束时间 (进行中为空白)</label>
       <input type="text" id="end" name="end" value="{{ mission.end or '' }}">
     </div>
     
-    <button type="submit" class="form-button">Save Changes</button>
+    <button type="submit" class="form-button">保存</button>
     
   </form>
 
