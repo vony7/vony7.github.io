@@ -316,6 +316,7 @@ def astronaut_profile(uid):
         m_dict = dict(m)
         m_dict["duration"] = duration_display
         m_dict["status"] = status
+        m_dict["end_raw"]=m["end"]
         
         if status == "future":
             future_missions.append(m_dict)
@@ -342,13 +343,60 @@ def astronaut_profile(uid):
                             total_display = f"{minutes}分钟"
     else:
         total_display = "0天"
+        
+# -------------------- ADD THIS NEW LOGIC --------------------
+    time_since_last_display = None
+    if astronaut['status'] == 1:  # 1 means 'Active'
+        if past_missions:
+            # past_missions is already sorted by start date, DESC
+            most_recent_past_mission = past_missions[0] 
+            
+            if most_recent_past_mission['status'] == 'ongoing':
+                time_since_last_display = "目前在轨"
+            
+            elif most_recent_past_mission['status'] == 'completed':
+                try:
+                    # Use the 'end_raw' date we saved
+                    last_end_dt = parser.parse(most_recent_past_mission['end_raw'])
+                    if not last_end_dt.tzinfo:
+                        last_end_dt = last_end_dt.replace(tzinfo=tz_utc8)
+                    
+                    now = datetime.now(tz_utc8)
+                    time_since = now - last_end_dt
+                    days_since = time_since.days
+
+                    if days_since < 0:
+                        time_since_last_display = "N/A"
+                    elif days_since > 365:
+                        years = days_since // 365
+                        months = (days_since % 365) // 30
+                        time_since_last_display = f"约 {years}年 {months}月"
+                    elif days_since > 30:
+                        months = days_since // 30
+                        days = days_since % 30
+                        time_since_last_display = f"约 {months}月 {days}天"
+                    elif days_since > 0:
+                         time_since_last_display = f"{days_since}天"
+                    else:
+                        time_since_last_display = "今天" # Landed today
+                except Exception as e:
+                    print(f"Error parsing last mission end date: {e}")
+                    time_since_last_display = "日期错误"
+        
+        else: # Active, but no past missions
+            time_since_last_display = "未执行任务"
+    else:
+        time_since_last_display = "已退役"
+    # ------------------ END OF NEW LOGIC ------------------
+
     conn.close()
     return render_template(
         "astronaut.html",
         astronaut=astronaut,
         past_missions=past_missions,
         future_missions=future_missions,
-        total_mission_time=total_display  # <-- Add this new variable
+        total_mission_time=total_display,
+        time_since_last_mission=time_since_last_display
     )
 
 

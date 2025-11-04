@@ -90,10 +90,14 @@
       <tr><td class="label">出生日期</td><td>{{ astronaut.DOB }}</td></tr>
       <tr><td class="label">服役批次</td><td>第{{ astronaut.group_id }}批</td></tr>
       <tr><td class="label">服役状态</td><td>{{ '现役' if astronaut.status == 1 else '退役' }}</td></tr>
-      <tr style="font-weight: bold; color: #800020;">
-        <td class="label" style="background: #eee;">太空总时长</td>
-        <td>{{ total_mission_time }}</td>
-      </tr>
+      <tr><td class="label" style="background: #eee;">太空总时长</td>
+            <td>{{ total_mission_time }}</td>
+         </tr>
+
+      <tr><td class="label">距上次任务</td>
+            <td>{{ time_since_last_mission }}</td>
+         </tr>
+            </table>
     </table>
 
     {% if future_missions %}
