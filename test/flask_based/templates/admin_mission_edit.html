@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block title %}Edit {{ mission.name }}{% endblock %}
+
+{% block content %}
+  <style>
+    .admin-form { background: #fdfdfd; border: 1px solid #ddd; padding: 25px; border-radius: 8px; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
+    .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+    .form-button { background-color: #800020; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
+    .form-button:hover { background-color: #600018; }
+    .form-group input[readonly] { background-color: #eee; cursor: not-allowed; }
+  </style>
+
+  <h1>Edit Mission: {{ mission.name }}</h1>
+  
+  <form class="admin-form" action="" method="POST">
+    
+    <div class="form-group">
+      <label for="name">Mission Name</label>
+      <input type="text" id="name" name="name" value="{{ mission.name }}" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="mid">Mission ID (Cannot be changed)</label>
+      <input type="text" id="mid" name="mid" value="{{ mission.mid }}" readonly>
+    </div>
+    
+    <div class="form-group">
+      <label for="type">Type</label>
+      <select id="type" name="type">
+        <option value="Manned" {% if mission.type == 'Manned' %}selected{% endif %}>Manned</option>
+        <option value="Cargo" {% if mission.type == 'Cargo' %}selected{% endif %}>Cargo</option>
+        <option value="Unmanned Test" {% if mission.type == 'Unmanned Test' %}selected{% endif %}>Unmanned Test</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label for="start">Start Time (YYYY-MM-DD HH:MM:SS)</label>
+      <input type="text" id="start" name="start" value="{{ mission.start or '' }}">
+    </div>
+
+    <div class="form-group">
+      <label for="end">End Time (Leave blank if ongoing)</label>
+      <input type="text" id="end" name="end" value="{{ mission.end or '' }}">
+    </div>
+    
+    <button type="submit" class="form-button">Save Changes</button>
+    
+  </form>
+
+{% endblock %}

@@ -66,12 +66,18 @@
 </head>
 <body>
   <div class="container">
-    
-    <nav class="navbar">
+<nav class="navbar">
       <ul>
         <li><a href="{{ url_for('index') }}">主页</a></li>
         <li><a href="{{ url_for('mission_list') }}">飞行任务</a></li>
         <li><a href="{{ url_for('chinese_astronauts') }}">航天员</a></li>
+        
+        <li style="margin-left: auto; background-color: #800020; padding: 0 5px; border-radius: 3px;">
+          <a href="{{ url_for('admin_mission_list') }}">管理任务</a>
+        </li>
+        <li style="background-color: #800020; padding: 0 5px; border-radius: 3px; margin-left: 5px;">
+          <a href="{{ url_for('admin_astronaut_list') }}">管理航天员</a>
+        </li>
       </ul>
     </nav>
     {% block content %}

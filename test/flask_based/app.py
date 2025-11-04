@@ -4,10 +4,29 @@ from dateutil import parser
 import sqlite3
 from pytz import timezone
 import os 
+from flask_httpauth import HTTPBasicAuth
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask import redirect, url_for
 
 tz_utc8 = timezone("Asia/Shanghai")
 
-app = Flask(__name__)
+# --- ADD THIS: Basic Auth Setup ---
+app = Flask(__name__)  # <-- CREATE THE APP FIRST!
+
+auth = HTTPBasicAuth()
+
+# Hard-code a single admin user.
+# In a real app, this would be in the database.
+users = {
+    "admin": generate_password_hash("password123")  # Change "password123" to your own password
+}
+
+@auth.verify_password
+def verify_password(username, password):
+    if username in users and \
+            check_password_hash(users.get(username), password):
+        return username
+# --- END Auth Setup ---
 
 @app.route('/')
 def index():
@@ -200,6 +219,67 @@ def chinese_astronauts():
         order=order,
     )
 
+# -----------------------------------------------------
+# --- NEW ASTRONAUT ADMIN ROUTES (Add this) ---
+# -----------------------------------------------------
+
+# This page will show a form to add a new astronaut
+@app.route("/admin/astronaut/new", methods=["GET"])
+@auth.login_required  # <-- Protected!
+def new_astronaut_form():
+    return render_template("admin_astronaut_form.html")
+
+
+# This route will *handle* the data from the form
+@app.route("/admin/astronaut/new", methods=["POST"])
+@auth.login_required  # <-- Protected!
+def add_new_astronaut():
+    # 1. Get all the fields from the form
+    uid = request.form.get('uid')
+    name = request.form.get('name')
+    gender = request.form.get('gender')
+    dob = request.form.get('dob')
+    group_id = request.form.get('group_id')
+    status = request.form.get('status') # This will be '1' or '0' as a string
+
+    # 2. Validation
+    if not uid or not name or not gender or not dob or not group_id or not status:
+        return "Error: All fields are required.", 400
+
+    try:
+        # Convert numbers to integers
+        group_id_int = int(group_id)
+        status_int = int(status)
+    except ValueError:
+        return "Error: Group ID and Status must be numbers.", 400
+
+    # 3. SQL Query
+    try:
+        conn = sqlite3.connect("astronauts.db")
+        cursor = conn.cursor()
+        
+        # The table is 'astronauts_cn'
+        sql = """
+            INSERT INTO astronauts_cn (uid, name, gender, DOB, group_id, status) 
+            VALUES (?, ?, ?, ?, ?, ?)
+        """
+        # The parameters must be in the same order
+        cursor.execute(sql, (uid, name, gender, dob, group_id_int, status_int))
+        
+        conn.commit()
+    except sqlite3.IntegrityError:
+        # This happens if the UID (primary key) already exists
+        conn.rollback()
+        return f"Error: Astronaut UID '{uid}' already exists. Please go back and choose a different one.", 409
+    except Exception as e:
+        conn.rollback()
+        print(f"Database error: {e}")
+        return f"An error occurred while adding the astronaut: {e}", 500
+    finally:
+        conn.close()
+
+    # 4. Success! Redirect to the main astronaut list.
+    return redirect(url_for('chinese_astronauts'))
 
 # -------------------- Astronaut Profile --------------------
 @app.route("/astronauts/<uid>")
@@ -401,7 +481,273 @@ def mission_detail(mid):
         crew=crew, 
         duration=duration_info
     )
+# -------------------------------------------------
+# --- ADMIN EDIT/DELETE ROUTES (Add this) ---
+# -------------------------------------------------
 
+# 1. THE MISSION "ADMIN HUB" PAGE
+@app.route("/admin/missions")
+@auth.login_required
+def admin_mission_list():
+    conn = sqlite3.connect("astronauts.db")
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # Get all missions, a simple list
+    cursor.execute("SELECT id, mid, name, start FROM missions ORDER BY start DESC")
+    missions = cursor.fetchall()
+    conn.close()
+    
+    return render_template("admin_mission_list.html", missions=missions)
+
+
+# 2. THE "EDIT MISSION" PAGE (HANDLES BOTH GET AND POST)
+@app.route("/admin/mission/edit/<mid>", methods=["GET", "POST"])
+@auth.login_required
+def edit_mission(mid):
+    if request.method == "POST":
+        # --- This is the UPDATE (POST) logic ---
+        # Get data from the submitted form
+        name = request.form.get('name')
+        type = request.form.get('type')
+        start = request.form.get('start')
+        end = request.form.get('end')
+
+        # Handle optional end date
+        if end == "":
+            end = None # Store as NULL in the database
+        
+        try:
+            conn = sqlite3.connect("astronauts.db")
+            cursor = conn.cursor()
+            
+            sql = """
+                UPDATE missions 
+                SET name = ?, type = ?, start = ?, end = ?
+                WHERE mid = ?
+            """
+            cursor.execute(sql, (name, type, start, end, mid))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            print(f"Database error: {e}")
+            return "An error occurred while updating the mission.", 500
+        finally:
+            conn.close()
+
+        # Success! Redirect back to the admin list
+        return redirect(url_for('admin_mission_list'))
+        
+    else:
+        # --- This is the LOAD (GET) logic ---
+        # Fetch the mission's current data
+        conn = sqlite3.connect("astronauts.db")
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM missions WHERE mid = ?", (mid,))
+        mission = cursor.fetchone()
+        conn.close()
+        
+        if not mission:
+            abort(404)
+        
+        # Show the edit form, pre-filled with 'mission' data
+        return render_template("admin_mission_edit.html", mission=mission)
+
+
+# 3. THE "DELETE MISSION" ROUTE (HANDLES POST ONLY)
+@app.route("/admin/mission/delete/<mid>", methods=["POST"])
+@auth.login_required
+def delete_mission(mid):
+    try:
+        conn = sqlite3.connect("astronauts.db")
+        cursor = conn.cursor()
+
+        # IMPORTANT: We must delete the 'child' records first.
+        # 1. Get the mission's primary ID (the integer 'id', not 'mid')
+        cursor.execute("SELECT id FROM missions WHERE mid = ?", (mid,))
+        mission_row = cursor.fetchone()
+        
+        if mission_row:
+            mission_id = mission_row['id']
+            
+            # 2. Delete all links from mission_crew
+            cursor.execute("DELETE FROM mission_crew WHERE mission_id = ?", (mission_id,))
+            
+            # 3. Now delete the 'parent' mission
+            cursor.execute("DELETE FROM missions WHERE mid = ?", (mid,))
+            
+            conn.commit()
+        else:
+            return "Mission not found.", 404
+            
+    except Exception as e:
+        conn.rollback()
+        print(f"Database error: {e}")
+        return "An error occurred while deleting the mission.", 500
+    finally:
+        conn.close()
+
+    # Success! Redirect back to the admin list
+    return redirect(url_for('admin_mission_list'))
+
+# -------------------------------------------------
+# --- NEW ADMIN ROUTES (Add this at the bottom) ---
+# -------------------------------------------------
+
+# This page will show a form to add a new mission
+@app.route("/admin/mission/new", methods=["GET"])
+@auth.login_required  # <-- This magic line protects the page!
+def new_mission_form():
+    # It just shows the HTML form
+    return render_template("admin_mission_form.html")
+
+
+# This route will *handle* the data from the form
+@app.route("/admin/mission/new", methods=["POST"])
+@auth.login_required  # <-- Also protected!
+def add_new_mission():
+    # 1. Get data from the form
+    name = request.form.get('name')
+    mid = request.form.get('mid')
+    type = request.form.get('type')
+    start = request.form.get('start')
+    end = request.form.get('end')
+
+    # Simple validation
+    if not name or not mid or not type:
+        return "Error: Name, MID, and Type are required.", 400
+
+    # Handle optional end date
+    if end == "":
+        end = None # Store as NULL in the database
+        
+    try:
+        # 2. Insert data into the database
+        conn = sqlite3.connect("astronauts.db")
+        cursor = conn.cursor()
+        
+        # IMPORTANT: Use ? to prevent SQL injection
+        sql = "INSERT INTO missions (name, mid, type, start, end) VALUES (?, ?, ?, ?, ?)"
+        cursor.execute(sql, (name, mid, type, start, end))
+        
+        conn.commit()  # <-- Don't forget to commit the change!
+    except Exception as e:
+        print(f"Database error: {e}")
+        conn.rollback() # Roll back changes on error
+        return "An error occurred while adding the mission.", 500
+    finally:
+        conn.close()
+
+    # 3. Redirect back to the main mission list
+    return redirect(url_for('mission_list'))
+
+# -----------------------------------------------------
+# --- ADMIN ASTRONAUT EDIT/DELETE ROUTES (Add this) ---
+# -----------------------------------------------------
+
+# 1. THE ASTRONAUT "ADMIN HUB" PAGE
+@app.route("/admin/astronauts")
+@auth.login_required
+def admin_astronaut_list():
+    conn = sqlite3.connect("astronauts.db")
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # Get all astronauts, a simple list
+    cursor.execute("SELECT uid, name, group_id, status FROM astronauts_cn ORDER BY group_id, name")
+    astronauts = cursor.fetchall()
+    conn.close()
+    
+    return render_template("admin_astronaut_list.html", astronauts=astronauts)
+
+
+# 2. THE "EDIT ASTRONAUT" PAGE (HANDLES BOTH GET AND POST)
+@app.route("/admin/astronaut/edit/<uid>", methods=["GET", "POST"])
+@auth.login_required
+def edit_astronaut(uid):
+    if request.method == "POST":
+        # --- This is the UPDATE (POST) logic ---
+        # Get data from the submitted form
+        name = request.form.get('name')
+        gender = request.form.get('gender')
+        dob = request.form.get('dob')
+        group_id = request.form.get('group_id')
+        status = request.form.get('status') # This will be '1' or '0' as a string
+        
+        try:
+            # Convert numbers to integers
+            group_id_int = int(group_id)
+            status_int = int(status)
+        except ValueError:
+            return "Error: Group ID and Status must be numbers.", 400
+
+        try:
+            conn = sqlite3.connect("astronauts.db")
+            cursor = conn.cursor()
+            
+            sql = """
+                UPDATE astronauts_cn 
+                SET name = ?, gender = ?, DOB = ?, group_id = ?, status = ?
+                WHERE uid = ?
+            """
+            cursor.execute(sql, (name, gender, dob, group_id_int, status_int, uid))
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            print(f"Database error: {e}")
+            return "An error occurred while updating the astronaut.", 500
+        finally:
+            conn.close()
+
+        # Success! Redirect back to the admin list
+        return redirect(url_for('admin_astronaut_list'))
+        
+    else:
+        # --- This is the LOAD (GET) logic ---
+        # Fetch the astronaut's current data
+        conn = sqlite3.connect("astronauts.db")
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM astronauts_cn WHERE uid = ?", (uid,))
+        astronaut = cursor.fetchone()
+        conn.close()
+        
+        if not astronaut:
+            abort(404)
+        
+        # Show the edit form, pre-filled with 'astronaut' data
+        return render_template("admin_astronaut_edit.html", astronaut=astronaut)
+
+
+# 3. THE "DELETE ASTRONAUT" ROUTE (HANDLES POST ONLY)
+@app.route("/admin/astronaut/delete/<uid>", methods=["POST"])
+@auth.login_required
+def delete_astronaut(uid):
+    try:
+        conn = sqlite3.connect("astronauts.db")
+        cursor = conn.cursor()
+
+        # IMPORTANT: We must delete the 'child' records first.
+        # 1. Delete all links from mission_crew
+        cursor.execute("DELETE FROM mission_crew WHERE astronaut_uid = ?", (uid,))
+            
+        # 2. Now delete the 'parent' astronaut
+        cursor.execute("DELETE FROM astronauts_cn WHERE uid = ?", (uid,))
+            
+        conn.commit()
+            
+    except Exception as e:
+        conn.rollback()
+        print(f"Database error: {e}")
+        return "An error occurred while deleting the astronaut.", 500
+    finally:
+        conn.close()
+
+    # Success! Redirect back to the admin list
+    return redirect(url_for('admin_astronaut_list'))
 
 # -------------------- Run App --------------------
 if __name__ == "__main__":

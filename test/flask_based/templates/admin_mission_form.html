@@ -1,0 +1,86 @@
+<!-- templates/admin_mission_form.html -->
+{% extends 'base.html' %}
+
+{% block title %}Add New Mission{% endblock %}
+
+{% block content %}
+  <!-- Styles for this form -->
+  <style>
+    .admin-form {
+      background: #fdfdfd;
+      border: 1px solid #ddd;
+      padding: 25px;
+      border-radius: 8px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box; /* Important for 100% width */
+    }
+    .form-button {
+      background-color: #800020;
+      color: white;
+      padding: 10px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1em;
+    }
+    .form-button:hover {
+      background-color: #600018;
+    }
+  </style>
+
+  <h1>添加新任务</h1>
+  
+  <!-- 
+    This form will POST data to the /admin/mission/new route.
+    The action="" means "submit to the same URL this page is on".
+  -->
+  <form class="admin-form" action="" method="POST">
+    
+    <div class="form-group">
+      <label for="name">任务名称 (如：神舟五号)</label>
+      <input type="text" id="name" name="name" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="mid">任务ID (如： sz-5)</label>
+      <input type="text" id="mid" name="mid" required>
+    </div>
+    
+    <div class="form-group">
+      <label for="type">类型</label>
+      <select id="type" name="type">
+        <option value="Manned">载人</option>
+        <option value="Cargo">货运</option>
+        <option value="Unmanned Test">测试</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label for="start">开始时间 (YYYY-MM-DD HH:MM:SS)</label>
+      <input type="text" id="start" name="start" placeholder="e.g., 2024-04-25 20:59:00">
+    </div>
+
+    <div class="form-group">
+      <label for="end">结束时间 (进行中为空白)</label>
+      <input type="text" id="end" name="end" placeholder="e.g., 2024-10-25 17:00:00">
+    </div>
+    
+    <button type="submit" class="form-button">添加新任务</button>
+    
+  </form>
+
+{% endblock %}

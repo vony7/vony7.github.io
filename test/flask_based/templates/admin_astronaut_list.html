@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin - Astronaut List{% endblock %}
+
+{% block content %}
+  <style>
+    .admin-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    .admin-table th, .admin-table td { border: 1px solid #ddd; padding: 10px; }
+    .admin-table th { background-color: #f4f4f4; text-align: left; }
+    .action-links { display: flex; gap: 10px; }
+    .btn {
+      padding: 5px 10px;
+      color: white;
+      text-decoration: none;
+      border-radius: 4px;
+      font-size: 0.9em;
+    }
+    .btn-edit { background-color: #007bff; }
+    .btn-delete {
+      background-color: #dc3545;
+      border: none;
+      font-family: Arial, sans-serif;
+      cursor: pointer;
+    }
+    .page-header { display: flex; justify-content: space-between; align-items: center; }
+    .btn-add { background-color: #28a745; }
+  </style>
+
+  <div class="page-header">
+    <h1>管理航天员</h1>
+    <a href="{{ url_for('new_astronaut_form') }}" class="btn btn-add">+ 添加新航天员</a>
+  </div>
+
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>姓名</th>
+        <th>UID</th>
+        <th>批次</th>
+        <th>服役状态</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for astro in astronauts %}
+      <tr>
+        <td>{{ astro.name }}</td>
+        <td>{{ astro.uid }}</td>
+        <td>第{{ astro.group_id }}批</td>
+        <td>{{ '现役' if astro.status == 1 else '退役' }}</td>
+        <td class="action-links">
+          <a href="{{ url_for('edit_astronaut', uid=astro.uid) }}" class="btn btn-edit">编辑</a>
+          
+          <form action="{{ url_for('delete_astronaut', uid=astro.uid) }}" method="POST"
+                onsubmit="return confirm('Are you sure you want to delete {{ astro.name }}? This is permanent.');">
+            <button type="submit" class="btn btn-delete">删除</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+{% endblock %}
