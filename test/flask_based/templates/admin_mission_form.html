@@ -1,10 +1,8 @@
-<!-- templates/admin_mission_form.html -->
 {% extends 'base.html' %}
 
 {% block title %}Add New Mission{% endblock %}
 
 {% block content %}
-  <!-- Styles for this form -->
   <style>
     .admin-form {
       background: #fdfdfd;
@@ -28,6 +26,10 @@
       border-radius: 4px;
       box-sizing: border-box; /* Important for 100% width */
     }
+    /* Style for the multi-select box */
+    .form-group select[multiple] {
+      height: 150px;
+    }
     .form-button {
       background-color: #800020;
       color: white;
@@ -44,28 +46,53 @@
 
   <h1>添加新任务</h1>
   
-  <!-- 
-    This form will POST data to the /admin/mission/new route.
-    The action="" means "submit to the same URL this page is on".
-  -->
   <form class="admin-form" action="" method="POST">
     
     <div class="form-group">
-      <label for="name">任务名称 (如：神舟五号)</label>
+      <label for="name">任务名称 (e.g., 神舟五号)</label>
       <input type="text" id="name" name="name" required>
     </div>
     
     <div class="form-group">
-      <label for="mid">任务ID (如： sz-5)</label>
+      <label for="mid">任务 ID (e.g., sz-18)</label>
       <input type="text" id="mid" name="mid" required>
     </div>
     
     <div class="form-group">
-      <label for="type">类型</label>
-      <select id="type" name="type">
+      <label for="type">任务类型</label>
+      <select id="type" name="type" onchange="toggleCrewSelect()">
         <option value="Manned">载人</option>
         <option value="Cargo">货运</option>
         <option value="Unmanned Test">测试</option>
+        <option value="Module">舱段</option>
+      </select>
+    </div>
+
+<div class="form-group" id="crew-select-group">
+      <label>飞行乘组 (Crew Members)</label>
+      
+      <label for="crew_01" style="font-weight:normal; margin-top: 5px;">乘员 01:</label>
+      <select id="crew_01" name="crew_01">
+        <option value="">-- [空] --</option>
+        {% for astro in astronauts %}
+          <option value="{{ astro.uid }}">{{ astro.name }}</option>
+        {% endfor %}
+      </select>
+      
+      <label for="crew_02" style="font-weight:normal; margin-top: 5px;">乘员 02:</label>
+      <select id="crew_02" name="crew_02">
+        <option value="">-- [空] --</option>
+        {% for astro in astronauts %}
+          <option value="{{ astro.uid }}">{{ astro.name }}</option>
+        {% endfor %}
+      </select>
+      
+      <label for="crew_03" style="font-weight:normal; margin-top: 5px;">乘员 03:</label>
+      <select id="crew_03" name="crew_03">
+        <option value="">-- [空] --</option>
+        {% for astro in astronauts %}
+          <option value="{{ astro.uid }}">{{ astro.name }}</option>
+        {% endfor %}
       </select>
     </div>
     
@@ -75,12 +102,28 @@
     </div>
 
     <div class="form-group">
-      <label for="end">结束时间 (进行中为空白)</label>
+      <label for="end">结束时间（进行中为空白）</label>
       <input type="text" id="end" name="end" placeholder="e.g., 2024-10-25 17:00:00">
     </div>
     
     <button type="submit" class="form-button">添加新任务</button>
     
   </form>
+
+  <script>
+    function toggleCrewSelect() {
+      var missionType = document.getElementById('type').value;
+      var crewSelect = document.getElementById('crew-select-group');
+      
+      if (missionType === 'Manned') {
+        crewSelect.style.display = 'block'; // Show it
+      } else {
+        crewSelect.style.display = 'none';  // Hide it
+      }
+    }
+    
+    // Run the function once on page load to set the correct initial state
+    document.addEventListener('DOMContentLoaded', toggleCrewSelect);
+  </script>
 
 {% endblock %}

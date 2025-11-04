@@ -548,34 +548,78 @@ def admin_mission_list():
     
     return render_template("admin_mission_list.html", missions=missions)
 
-
-# 2. THE "EDIT MISSION" PAGE (HANDLES BOTH GET AND POST)
+# -------------------------------------------------
+# --- REPLACE YOUR "EDIT MISSION" FUNCTION WITH THIS ---
+# -------------------------------------------------
+# REPLACE THIS FUNCTION in app.py
 @app.route("/admin/mission/edit/<mid>", methods=["GET", "POST"])
 @auth.login_required
 def edit_mission(mid):
     if request.method == "POST":
         # --- This is the UPDATE (POST) logic ---
-        # Get data from the submitted form
+        
+        # 1. Get data from the submitted form
         name = request.form.get('name')
         type = request.form.get('type')
         start = request.form.get('start')
         end = request.form.get('end')
-
+        
+        # --- UPDATED: Get crew from 3 separate dropdowns ---
+        crew_01 = request.form.get('crew_01')
+        crew_02 = request.form.get('crew_02')
+        crew_03 = request.form.get('crew_03')
+        
+        # Create a SET of UIDs, filtering out empty strings and duplicates
+        new_crew_set = {uid for uid in [crew_01, crew_02, crew_03] if uid}
+        
+        # If the type is not 'Manned', force the crew set to be empty
+        if type != 'Manned':
+            new_crew_set = set()
+            
         # Handle optional end date
         if end == "":
             end = None # Store as NULL in the database
         
+        # 2. Start database transaction
+        conn = sqlite3.connect("astronauts.db")
         try:
-            conn = sqlite3.connect("astronauts.db")
             cursor = conn.cursor()
             
-            sql = """
+            # 3. Update the main 'missions' table
+            sql_update_mission = """
                 UPDATE missions 
                 SET name = ?, type = ?, start = ?, end = ?
                 WHERE mid = ?
             """
-            cursor.execute(sql, (name, type, start, end, mid))
+            cursor.execute(sql_update_mission, (name, type, start, end, mid))
+            
+            # 4. Sync the 'mission_crew' table
+            cursor.execute("SELECT id FROM missions WHERE mid = ?", (mid,))
+            mission_row = cursor.fetchone()
+            mission_id = mission_row[0]
+
+            # Get the SET of astronauts currently in the DB
+            cursor.execute("SELECT astronaut_uid FROM mission_crew WHERE mission_id = ?", (mission_id,))
+            old_crew_rows = cursor.fetchall()
+            old_crew_set = {row[0] for row in old_crew_rows}
+            
+            # We already have new_crew_set from above
+            
+            # Calculate the differences
+            to_add = new_crew_set - old_crew_set
+            to_remove = old_crew_set - new_crew_set
+            
+            if to_add:
+                add_data = [(mission_id, uid) for uid in to_add]
+                cursor.executemany("INSERT INTO mission_crew (mission_id, astronaut_uid) VALUES (?, ?)", add_data)
+                
+            if to_remove:
+                remove_data = [(mission_id, uid) for uid in to_remove]
+                cursor.executemany("DELETE FROM mission_crew WHERE mission_id = ? AND astronaut_uid = ?", remove_data)
+
+            # 5. Commit all changes
             conn.commit()
+            
         except Exception as e:
             conn.rollback()
             print(f"Database error: {e}")
@@ -588,20 +632,41 @@ def edit_mission(mid):
         
     else:
         # --- This is the LOAD (GET) logic ---
-        # Fetch the mission's current data
         conn = sqlite3.connect("astronauts.db")
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
+        # 1. Fetch the mission's current data
         cursor.execute("SELECT * FROM missions WHERE mid = ?", (mid,))
         mission = cursor.fetchone()
-        conn.close()
         
         if not mission:
+            conn.close()
             abort(404)
         
-        # Show the edit form, pre-filled with 'mission' data
-        return render_template("admin_mission_edit.html", mission=mission)
+        # 2. Fetch ALL active astronauts (for the select box)
+        cursor.execute("SELECT uid, name FROM astronauts_cn WHERE status = 1 ORDER BY name")
+        all_astronauts = cursor.fetchall()
+        
+        # 3. Fetch the UIDs of crew *currently* on this mission
+        cursor.execute("SELECT astronaut_uid FROM mission_crew WHERE mission_id = ?", (mission['id'],))
+        current_crew_rows = cursor.fetchall()
+        
+        # --- UPDATED: Create a padded list ---
+        # Store them in a LIST
+        current_crew_list = [row['astronaut_uid'] for row in current_crew_rows]
+        # Pad the list to 3 elements with empty strings
+        current_crew = (current_crew_list + ["", "", ""])[:3]
+        
+        conn.close()
+        
+        # 4. Show the edit form, pre-filled with all the data
+        return render_template(
+            "admin_mission_edit.html", 
+            mission=mission,
+            all_astronauts=all_astronauts,
+            current_crew=current_crew  # Pass the padded list
+        )
 
 
 # 3. THE "DELETE MISSION" ROUTE (HANDLES POST ONLY)
@@ -643,16 +708,29 @@ def delete_mission(mid):
 # -------------------------------------------------
 # --- NEW ADMIN ROUTES (Add this at the bottom) ---
 # -------------------------------------------------
+# -------------------------------------------------
+# --- ADMIN "CREATE" ROUTES (REPLACE THESE) ---
+# -------------------------------------------------
 
 # This page will show a form to add a new mission
 @app.route("/admin/mission/new", methods=["GET"])
 @auth.login_required  # <-- This magic line protects the page!
 def new_mission_form():
-    # It just shows the HTML form
-    return render_template("admin_mission_form.html")
+    # --- NEW ---
+    # We need to fetch all active astronauts to list them in the form
+    conn = sqlite3.connect("astronauts.db")
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # Get all active astronauts
+    cursor.execute("SELECT uid, name FROM astronauts_cn WHERE status = 1 ORDER BY name")
+    astronauts = cursor.fetchall()
+    conn.close()
+    
+    # Pass the astronauts to the template
+    return render_template("admin_mission_form.html", astronauts=astronauts)
 
-
-# This route will *handle* the data from the form
+# REPLACE THIS FUNCTION in app.py
 @app.route("/admin/mission/new", methods=["POST"])
 @auth.login_required  # <-- Also protected!
 def add_new_mission():
@@ -662,6 +740,15 @@ def add_new_mission():
     type = request.form.get('type')
     start = request.form.get('start')
     end = request.form.get('end')
+    
+    # --- UPDATED: Get crew from 3 separate dropdowns ---
+    crew_01 = request.form.get('crew_01')
+    crew_02 = request.form.get('crew_02')
+    crew_03 = request.form.get('crew_03')
+    
+    # Create a list of UIDs, filtering out empty strings ("")
+    # Use a set to automatically remove duplicates, then convert to list
+    crew_uids = list({uid for uid in [crew_01, crew_02, crew_03] if uid})
 
     # Simple validation
     if not name or not mid or not type:
@@ -671,25 +758,43 @@ def add_new_mission():
     if end == "":
         end = None # Store as NULL in the database
         
+    # --- This 'if type != Manned' check is still important ---
+    if type != 'Manned':
+        crew_uids = [] # Force empty crew if not a manned mission
+        
+    # --- NEW: Database Transaction ---
+    conn = sqlite3.connect("astronauts.db")
     try:
-        # 2. Insert data into the database
-        conn = sqlite3.connect("astronauts.db")
         cursor = conn.cursor()
         
-        # IMPORTANT: Use ? to prevent SQL injection
+        # 2. Insert data into the 'missions' table
         sql = "INSERT INTO missions (name, mid, type, start, end) VALUES (?, ?, ?, ?, ?)"
         cursor.execute(sql, (name, mid, type, start, end))
         
-        conn.commit()  # <-- Don't forget to commit the change!
+        # 3. Get the ID of the mission we *just* created
+        new_mission_id = cursor.lastrowid
+        
+        # 4. If crew members were selected, add them to 'mission_crew'
+        if crew_uids:
+            crew_data_to_insert = []
+            for uid in crew_uids:
+                crew_data_to_insert.append((new_mission_id, uid))
+            
+            sql_crew = "INSERT INTO mission_crew (mission_id, astronaut_uid) VALUES (?, ?)"
+            cursor.executemany(sql_crew, crew_data_to_insert)
+        
+        # 5. Commit all changes at once
+        conn.commit()
+        
     except Exception as e:
+        conn.rollback() # Roll back all changes if any part failed
         print(f"Database error: {e}")
-        conn.rollback() # Roll back changes on error
         return "An error occurred while adding the mission.", 500
     finally:
         conn.close()
 
-    # 3. Redirect back to the main mission list
-    return redirect(url_for('mission_list'))
+    # 6. Redirect back to the main mission list
+    return redirect(url_for('admin_mission_list'))
 
 # -----------------------------------------------------
 # --- ADMIN ASTRONAUT EDIT/DELETE ROUTES (Add this) ---
