@@ -31,10 +31,10 @@
       <div class="form-group">
          <label for="type">任务类型 (Type)</label>
                <select id="type" name="type" onchange="toggleCrewSelect()">
-            <option value="Manned" {% if mission.type == 'Manned' %}selected{% endif %}>载人 (Manned)</option>
-            <option value="Cargo" {% if mission.type == 'Cargo' %}selected{% endif %}>货运 (Cargo)</option>
-            <option value="Unmanned Test" {% if mission.type == 'Unmanned Test' %}selected{% endif %}>无人测试 (Unmanned Test)</option>
-                    <option value="module" {% if mission.type == 'module' %}selected{% endif %}>舱段 (Module)</option>
+            <option value="Manned" {% if mission.type == 'Manned' %}selected{% endif %}>载人</option>
+            <option value="Cargo" {% if mission.type == 'Cargo' %}selected{% endif %}>货运</option>
+            <option value="Test" {% if mission.type == 'Test' %}selected{% endif %}>测试</option>
+                    <option value="Module" {% if mission.type == 'Module' %}selected{% endif %}>舱段</option>
          </select>
       </div>
 

@@ -401,9 +401,10 @@ def astronaut_profile(uid):
 
 
 # -------------------- Missions Viewer --------------------
+# REPLACE this function
 @app.route("/missions/")
 def mission_list():
-    sort_by = request.args.get("sort_by", "start")  # default
+    sort_by = request.args.get("sort_by", "start")
     order = request.args.get("order", "desc")
     mission_type = request.args.get("type")
     conn = sqlite3.connect("astronauts.db")
@@ -421,19 +422,19 @@ def mission_list():
 
     mission_data = []
     for m in missions:
-        # Get crew
+        # --- UPDATED SQL: Added ORDER BY mc.crew_order ASC ---
         cursor.execute(
             """
             SELECT a.name, a.uid
             FROM mission_crew mc
             JOIN astronauts_cn a ON mc.astronaut_uid = a.uid
             WHERE mc.mission_id = ?
+            ORDER BY mc.crew_order ASC
             """,
             (m["id"],),
         )
         crew = cursor.fetchall()
 
-        # Use helper for duration calculation
         total_seconds, duration_display, status = calculate_mission_duration(
             m["start"], m["end"]
         )
@@ -453,12 +454,11 @@ def mission_list():
             }
         )
 
-    # Sorting
+    # ... (rest of your sorting logic) ...
     reverse = order == "desc"
     if sort_by == "duration":
         mission_data.sort(key=lambda m: m["duration_seconds"], reverse=reverse)
     elif sort_by in ("start", "end"):
-        # Handle empty values by sorting them last
         mission_data.sort(
             key=lambda m: (
                 m[sort_by] if m[sort_by] and m[sort_by] != "0" 
@@ -469,21 +469,20 @@ def mission_list():
 
     conn.close()
     return render_template(
-                "missions.html",
-                missions=mission_data,
-                selected_type=mission_type,
-                sort_by=sort_by,
-                order=order,
-        )
+        "missions.html",
+        missions=mission_data,
+        selected_type=mission_type,
+        sort_by=sort_by,
+        order=order,
+    )
 
-
+# REPLACE this function
 @app.route("/missions/<mid>")
 def mission_detail(mid):
     conn = sqlite3.connect("astronauts.db")
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # Get mission details
     cursor.execute("SELECT * FROM missions WHERE mid = ?", (mid,))
     mission = cursor.fetchone()
 
@@ -492,13 +491,13 @@ def mission_detail(mid):
         abort(404)
     mission_id = mission["id"]
 
-    # Get crew members
+    # --- UPDATED SQL: Added ORDER BY mc.crew_order ASC ---
     cursor.execute(
         """
-        SELECT a.* 
-        FROM astronauts_cn a
+        SELECT a.* FROM astronauts_cn a
         JOIN mission_crew mc ON a.uid = mc.astronaut_uid
         WHERE mc.mission_id = ?
+        ORDER BY mc.crew_order ASC
         """,
         (mission_id,),
     )
@@ -509,9 +508,6 @@ def mission_detail(mid):
         row["photo_url"] = resolve_astronaut_photo(row["uid"])
         crew.append(row)
 
-        
-    
-    # Enhanced duration calculation using helper
     total_seconds, duration_display, status = calculate_mission_duration(
         mission["start"], mission["end"]
     )
@@ -529,6 +525,7 @@ def mission_detail(mid):
         crew=crew, 
         duration=duration_info
     )
+    
 # -------------------------------------------------
 # --- ADMIN EDIT/DELETE ROUTES (Add this) ---
 # -------------------------------------------------
@@ -552,72 +549,56 @@ def admin_mission_list():
 # --- REPLACE YOUR "EDIT MISSION" FUNCTION WITH THIS ---
 # -------------------------------------------------
 # REPLACE THIS FUNCTION in app.py
+# REPLACE this function
 @app.route("/admin/mission/edit/<mid>", methods=["GET", "POST"])
 @auth.login_required
 def edit_mission(mid):
     if request.method == "POST":
         # --- This is the UPDATE (POST) logic ---
-        
-        # 1. Get data from the submitted form
         name = request.form.get('name')
         type = request.form.get('type')
         start = request.form.get('start')
         end = request.form.get('end')
         
-        # --- UPDATED: Get crew from 3 separate dropdowns ---
         crew_01 = request.form.get('crew_01')
         crew_02 = request.form.get('crew_02')
         crew_03 = request.form.get('crew_03')
+
+        # --- UPDATED: Create a list of tuples with the order ---
+        crew_list = []
+        if crew_01: crew_list.append((crew_01, 1))
+        if crew_02: crew_list.append((crew_02, 2))
+        if crew_03: crew_list.append((crew_03, 3))
         
-        # Create a SET of UIDs, filtering out empty strings and duplicates
-        new_crew_set = {uid for uid in [crew_01, crew_02, crew_03] if uid}
-        
-        # If the type is not 'Manned', force the crew set to be empty
         if type != 'Manned':
-            new_crew_set = set()
+            crew_list = []
             
-        # Handle optional end date
-        if end == "":
-            end = None # Store as NULL in the database
+        if end == "": end = None
         
-        # 2. Start database transaction
         conn = sqlite3.connect("astronauts.db")
         try:
             cursor = conn.cursor()
             
-            # 3. Update the main 'missions' table
-            sql_update_mission = """
-                UPDATE missions 
-                SET name = ?, type = ?, start = ?, end = ?
-                WHERE mid = ?
-            """
+            # 1. Update the main 'missions' table
+            sql_update_mission = "UPDATE missions SET name = ?, type = ?, start = ?, end = ? WHERE mid = ?"
             cursor.execute(sql_update_mission, (name, type, start, end, mid))
             
-            # 4. Sync the 'mission_crew' table
+            # 2. Get the mission's integer ID
             cursor.execute("SELECT id FROM missions WHERE mid = ?", (mid,))
             mission_row = cursor.fetchone()
             mission_id = mission_row[0]
 
-            # Get the SET of astronauts currently in the DB
-            cursor.execute("SELECT astronaut_uid FROM mission_crew WHERE mission_id = ?", (mission_id,))
-            old_crew_rows = cursor.fetchall()
-            old_crew_set = {row[0] for row in old_crew_rows}
+            # 3. --- UPDATED: Sync the 'mission_crew' table ---
+            # "Scorched Earth": Delete all old crew, insert new crew. Safest way.
+            cursor.execute("DELETE FROM mission_crew WHERE mission_id = ?", (mission_id,))
             
-            # We already have new_crew_set from above
-            
-            # Calculate the differences
-            to_add = new_crew_set - old_crew_set
-            to_remove = old_crew_set - new_crew_set
-            
-            if to_add:
-                add_data = [(mission_id, uid) for uid in to_add]
-                cursor.executemany("INSERT INTO mission_crew (mission_id, astronaut_uid) VALUES (?, ?)", add_data)
-                
-            if to_remove:
-                remove_data = [(mission_id, uid) for uid in to_remove]
-                cursor.executemany("DELETE FROM mission_crew WHERE mission_id = ? AND astronaut_uid = ?", remove_data)
+            if crew_list:
+                crew_data_to_insert = [
+                    (mission_id, uid, order) for (uid, order) in crew_list
+                ]
+                sql_crew = "INSERT INTO mission_crew (mission_id, astronaut_uid, crew_order) VALUES (?, ?, ?)"
+                cursor.executemany(sql_crew, crew_data_to_insert)
 
-            # 5. Commit all changes
             conn.commit()
             
         except Exception as e:
@@ -627,7 +608,6 @@ def edit_mission(mid):
         finally:
             conn.close()
 
-        # Success! Redirect back to the admin list
         return redirect(url_for('admin_mission_list'))
         
     else:
@@ -636,7 +616,6 @@ def edit_mission(mid):
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        # 1. Fetch the mission's current data
         cursor.execute("SELECT * FROM missions WHERE mid = ?", (mid,))
         mission = cursor.fetchone()
         
@@ -644,45 +623,51 @@ def edit_mission(mid):
             conn.close()
             abort(404)
         
-        # 2. Fetch ALL active astronauts (for the select box)
         cursor.execute("SELECT uid, name FROM astronauts_cn WHERE status = 1 ORDER BY name")
         all_astronauts = cursor.fetchall()
         
-        # 3. Fetch the UIDs of crew *currently* on this mission
-        cursor.execute("SELECT astronaut_uid FROM mission_crew WHERE mission_id = ?", (mission['id'],))
+        # --- UPDATED: Get current crew *in the correct order* ---
+        cursor.execute(
+            "SELECT astronaut_uid FROM mission_crew WHERE mission_id = ? ORDER BY crew_order ASC", 
+            (mission['id'],)
+        )
         current_crew_rows = cursor.fetchall()
         
-        # --- UPDATED: Create a padded list ---
-        # Store them in a LIST
         current_crew_list = [row['astronaut_uid'] for row in current_crew_rows]
         # Pad the list to 3 elements with empty strings
         current_crew = (current_crew_list + ["", "", ""])[:3]
         
         conn.close()
         
-        # 4. Show the edit form, pre-filled with all the data
         return render_template(
             "admin_mission_edit.html", 
             mission=mission,
             all_astronauts=all_astronauts,
-            current_crew=current_crew  # Pass the padded list
+            current_crew=current_crew
         )
 
-
 # 3. THE "DELETE MISSION" ROUTE (HANDLES POST ONLY)
+# REPLACE this function in app.py
 @app.route("/admin/mission/delete/<mid>", methods=["POST"])
 @auth.login_required
 def delete_mission(mid):
     try:
         conn = sqlite3.connect("astronauts.db")
+        
+        # --- ADD THIS LINE ---
+        # This tells sqlite to return dictionaries (like {'id': 12})
+        # instead of tuples (like (12,)).
+        conn.row_factory = sqlite3.Row
+        # ---------------------
+
         cursor = conn.cursor()
 
-        # IMPORTANT: We must delete the 'child' records first.
         # 1. Get the mission's primary ID (the integer 'id', not 'mid')
         cursor.execute("SELECT id FROM missions WHERE mid = ?", (mid,))
         mission_row = cursor.fetchone()
         
         if mission_row:
+            # This line will now work correctly
             mission_id = mission_row['id']
             
             # 2. Delete all links from mission_crew
@@ -697,7 +682,7 @@ def delete_mission(mid):
             
     except Exception as e:
         conn.rollback()
-        print(f"Database error: {e}")
+        print(f"Database error: {e}") # This is where your error was printed
         return "An error occurred while deleting the mission.", 500
     finally:
         conn.close()
@@ -731,8 +716,9 @@ def new_mission_form():
     return render_template("admin_mission_form.html", astronauts=astronauts)
 
 # REPLACE THIS FUNCTION in app.py
+# REPLACE this function
 @app.route("/admin/mission/new", methods=["POST"])
-@auth.login_required  # <-- Also protected!
+@auth.login_required
 def add_new_mission():
     # 1. Get data from the form
     name = request.form.get('name')
@@ -741,59 +727,56 @@ def add_new_mission():
     start = request.form.get('start')
     end = request.form.get('end')
     
-    # --- UPDATED: Get crew from 3 separate dropdowns ---
     crew_01 = request.form.get('crew_01')
     crew_02 = request.form.get('crew_02')
     crew_03 = request.form.get('crew_03')
     
-    # Create a list of UIDs, filtering out empty strings ("")
-    # Use a set to automatically remove duplicates, then convert to list
-    crew_uids = list({uid for uid in [crew_01, crew_02, crew_03] if uid})
+    # --- UPDATED: Create a list of tuples with the order ---
+    # (uid, order)
+    crew_list = []
+    if crew_01: crew_list.append((crew_01, 1))
+    if crew_02: crew_list.append((crew_02, 2))
+    if crew_03: crew_list.append((crew_03, 3))
+    
+    # If the type is not 'Manned', force the crew list to be empty
+    if type != 'Manned':
+        crew_list = []
 
-    # Simple validation
     if not name or not mid or not type:
         return "Error: Name, MID, and Type are required.", 400
 
-    # Handle optional end date
-    if end == "":
-        end = None # Store as NULL in the database
+    if end == "": end = None
         
-    # --- This 'if type != Manned' check is still important ---
-    if type != 'Manned':
-        crew_uids = [] # Force empty crew if not a manned mission
-        
-    # --- NEW: Database Transaction ---
     conn = sqlite3.connect("astronauts.db")
     try:
         cursor = conn.cursor()
         
-        # 2. Insert data into the 'missions' table
+        # 2. Insert into 'missions'
         sql = "INSERT INTO missions (name, mid, type, start, end) VALUES (?, ?, ?, ?, ?)"
         cursor.execute(sql, (name, mid, type, start, end))
         
-        # 3. Get the ID of the mission we *just* created
         new_mission_id = cursor.lastrowid
         
-        # 4. If crew members were selected, add them to 'mission_crew'
-        if crew_uids:
-            crew_data_to_insert = []
-            for uid in crew_uids:
-                crew_data_to_insert.append((new_mission_id, uid))
+        # 3. --- UPDATED: Insert into 'mission_crew' with order ---
+        if crew_list:
+            # Prepare data: (mission_id, astronaut_uid, crew_order)
+            crew_data_to_insert = [
+                (new_mission_id, uid, order) for (uid, order) in crew_list
+            ]
             
-            sql_crew = "INSERT INTO mission_crew (mission_id, astronaut_uid) VALUES (?, ?)"
+            # Note the 3 columns in the SQL
+            sql_crew = "INSERT INTO mission_crew (mission_id, astronaut_uid, crew_order) VALUES (?, ?, ?)"
             cursor.executemany(sql_crew, crew_data_to_insert)
         
-        # 5. Commit all changes at once
         conn.commit()
         
     except Exception as e:
-        conn.rollback() # Roll back all changes if any part failed
+        conn.rollback()
         print(f"Database error: {e}")
         return "An error occurred while adding the mission.", 500
     finally:
         conn.close()
 
-    # 6. Redirect back to the main mission list
     return redirect(url_for('admin_mission_list'))
 
 # -----------------------------------------------------
