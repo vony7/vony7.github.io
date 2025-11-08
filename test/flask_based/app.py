@@ -570,7 +570,7 @@ def edit_mission(mid):
         if crew_02: crew_list.append((crew_02, 2))
         if crew_03: crew_list.append((crew_03, 3))
         
-        if type != 'Manned':
+        if type != '载人':
             crew_list = []
             
         if end == "": end = None

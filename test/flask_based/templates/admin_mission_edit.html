@@ -30,60 +30,60 @@
       
       <div class="form-group">
          <label for="type">任务类型 (Type)</label>
-               <select id="type" name="type" onchange="toggleCrewSelect()">
-            <option value="Manned" {% if mission.type == 'Manned' %}selected{% endif %}>载人</option>
-            <option value="Cargo" {% if mission.type == 'Cargo' %}selected{% endif %}>货运</option>
-            <option value="Test" {% if mission.type == 'Test' %}selected{% endif %}>测试</option>
-                    <option value="Module" {% if mission.type == 'Module' %}selected{% endif %}>舱段</option>
+         <select id="type" name="type" onchange="toggleCrewSelect()">
+            <option value="载人" {% if mission.type == '载人' %}selected{% endif %}>载人</option>
+            <option value="货运" {% if mission.type == '货运' %}selected{% endif %}>货运</option>
+            <option value="测试" {% if mission.type == '测试' %}selected{% endif %}>测试</option>
+            <option value="舱段" {% if mission.type == '舱段' %}selected{% endif %}>舱段</option>
          </select>
       </div>
 
-<div class="form-group" id="crew-select-group">
-      <label>飞行乘组 (Crew Members)</label>
-      
-      <label for="crew_01" style="font-weight:normal; margin-top: 5px;">乘员 01:</label>
-      <select id="crew_01" name="crew_01">
-        <option value="">-- [空] --</option>
-        {% for astro in all_astronauts %}
-          <option value="{{ astro.uid }}" 
-                  {% if astro.uid == current_crew[0] %}selected{% endif %}>
-            {{ astro.name }}
-          </option>
-        {% endfor %}
-      </select>
-      
-      <label for="crew_02" style="font-weight:normal; margin-top: 5px;">乘员 02:</label>
-      <select id="crew_02" name="crew_02">
-        <option value="">-- [空] --</option>
-        {% for astro in all_astronauts %}
-          <option value="{{ astro.uid }}" 
-                  {% if astro.uid == current_crew[1] %}selected{% endif %}>
-            {{ astro.name }}
-          </option>
-        {% endfor %}
-      </select>
-      
-      <label for="crew_03" style="font-weight:normal; margin-top: 5px;">乘员 03:</label>
-      <select id="crew_03" name="crew_03">
-        <option value="">-- [空] --</option>
-        {% for astro in all_astronauts %}
-          <option value="{{ astro.uid }}" 
-                  {% if astro.uid == current_crew[2] %}selected{% endif %}>
-            {{ astro.name }}
-          </option>
-        {% endfor %}
-      </select>
-    </div>
+      <div class="form-group" id="crew-select-group">
+         <label>飞行乘组 (Crew Members)</label>
+         
+         <label for="crew_01" style="font-weight:normal; margin-top: 5px;">乘员 01:</label>
+         <select id="crew_01" name="crew_01">
+            <option value="">-- [空] --</option>
+            {% for astro in all_astronauts %}
+               <option value="{{ astro.uid }}" 
+                  {% if current_crew and current_crew|length > 0 and astro.uid == current_crew[0] %}selected{% endif %}>
+                  {{ astro.name }}
+               </option>
+            {% endfor %}
+         </select>
+         
+         <label for="crew_02" style="font-weight:normal; margin-top: 5px;">乘员 02:</label>
+         <select id="crew_02" name="crew_02">
+            <option value="">-- [空] --</option>
+            {% for astro in all_astronauts %}
+               <option value="{{ astro.uid }}" 
+                  {% if current_crew and current_crew|length > 1 and astro.uid == current_crew[1] %}selected{% endif %}>
+                  {{ astro.name }}
+               </option>
+            {% endfor %}
+         </select>
+         
+         <label for="crew_03" style="font-weight:normal; margin-top: 5px;">乘员 03:</label>
+         <select id="crew_03" name="crew_03">
+            <option value="">-- [空] --</option>
+            {% for astro in all_astronauts %}
+               <option value="{{ astro.uid }}" 
+                  {% if current_crew and current_crew|length > 2 and astro.uid == current_crew[2] %}selected{% endif %}>
+                  {{ astro.name }}
+               </option>
+            {% endfor %}
+         </select>
+      </div>
       
       <div class="form-group">
          <label for="start">开始时间 (Start Time)</label>
-      <small>格式 (Format): YYYY-MM-DD HH:MM:SS</small>
+         <small>格式 (Format): YYYY-MM-DD HH:MM:SS</small>
          <input type="text" id="start" name="start" value="{{ mission.start or '' }}">
       </div>
 
       <div class="form-group">
          <label for="end">结束时间 (End Time)</label>
-      <small>进行中请留白 (Leave blank if ongoing)</small>
+         <small>进行中请留白 (Leave blank if ongoing)</small>
          <input type="text" id="end" name="end" value="{{ mission.end or '' }}">
       </div>
       
@@ -91,19 +91,20 @@
       
    </form>
 
-  <script>
-    function toggleCrewSelect() {
-      var missionType = document.getElementById('type').value;
-      var crewSelect = document.getElementById('crew-select-group');
-      
-      if (missionType === 'Manned') {
-        crewSelect.style.display = 'block'; // Show it
-      } else {
-        crewSelect.style.display = 'none';  // Hide it
+   <script>
+      function toggleCrewSelect() {
+         var missionType = document.getElementById('type').value;
+         var crewSelect = document.getElementById('crew-select-group');
+         
+         // 修复：这里必须匹配 HTML select 中的 value 值 '载人'
+         if (missionType === '载人') {
+            crewSelect.style.display = 'block'; 
+         } else {
+            crewSelect.style.display = 'none';  
+         }
       }
-    }
-    
-    // Run the function once on page load to set the correct initial state
-    document.addEventListener('DOMContentLoaded', toggleCrewSelect);
-  </script>
+      
+      // 页面加载时运行一次以设置正确的初始状态
+      document.addEventListener('DOMContentLoaded', toggleCrewSelect);
+   </script>
 {% endblock %}

@@ -61,10 +61,10 @@
     <div class="form-group">
       <label for="type">任务类型</label>
       <select id="type" name="type" onchange="toggleCrewSelect()">
-        <option value="Manned">载人</option>
-        <option value="Cargo">货运</option>
-        <option value="Unmanned Test">测试</option>
-        <option value="Module">舱段</option>
+        <option value="载人">载人</option>
+        <option value="货运">货运</option>
+        <option value="测试">测试</option>
+        <option value="舱段">舱段</option>
       </select>
     </div>
 
@@ -115,7 +115,7 @@
       var missionType = document.getElementById('type').value;
       var crewSelect = document.getElementById('crew-select-group');
       
-      if (missionType === 'Manned') {
+      if (missionType === 'Crew') {
         crewSelect.style.display = 'block'; // Show it
       } else {
         crewSelect.style.display = 'none';  // Hide it

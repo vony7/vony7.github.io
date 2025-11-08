@@ -34,22 +34,22 @@
        所有
     </a>
     
-    <a href="{{ url_for('mission_list', type='Manned') }}"
-       class="{% if selected_type == 'Manned' %}active{% endif %}">
+    <a href="{{ url_for('mission_list', type='载人') }}"
+       class="{% if selected_type == 'Crew' %}active{% endif %}">
        载人
     </a>
     
-    <a href="{{ url_for('mission_list', type='Cargo') }}"
+    <a href="{{ url_for('mission_list', type='货运') }}"
        class="{% if selected_type == 'Cargo' %}active{% endif %}">
        货运
     </a>
     
-    <a href="{{ url_for('mission_list', type='Test') }}"
+    <a href="{{ url_for('mission_list', type='测试') }}"
        class="{% if selected_type == 'Unmanned Test' %}active{% endif %}">
        测试
     </a>
 
-        <a href="{{ url_for('mission_list', type='Module') }}"
+        <a href="{{ url_for('mission_list', type='舱段') }}"
        class="{% if selected_type == 'Module' %}active{% endif %}">
        舱段
     </a>
