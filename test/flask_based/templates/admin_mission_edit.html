@@ -1,110 +1,134 @@
-{% extends 'base.html' %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <title>编辑任务: {{ mission.name }}</title>
+    <style>
+        body { font-family: "Microsoft YaHei", sans-serif; padding: 20px; background: #f4f7f6; }
+        .form-container { background: white; padding: 30px; border-radius: 8px; max-width: 700px; margin: 0 auto; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+        .form-group { margin-bottom: 20px; }
+        label { display: block; margin-bottom: 8px; font-weight: bold; color: #2c3e50; }
+        input[type="text"], input[type="date"], select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; font-size: 14px; }
+        .btn-submit { background: #2ecc71; color: white; padding: 12px 24px; border: none; border-radius: 4px; cursor: pointer; width: 100%; font-size: 16px; font-weight: bold; }
+        .btn-submit:hover { background: #27ae60; }
+        .crew-section { background: #f9f9f9; padding: 15px; border-radius: 8px; border: 1px solid #eee; margin-top: 15px; }
+        .crew-section h3 { margin-top: 0; color: #34495e; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .hidden { display: none; }
+        .checkbox-label { display: flex; align-items: center; background: #eef; padding: 10px; border-radius: 5px; cursor: pointer; }
+        .checkbox-label input { margin-right: 10px; width: auto; }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h2>✏️ 编辑任务: {{ mission.name }}</h2>
+        
+        <form method="POST">
+            <div class="form-group">
+                <label>任务代号 (MID - 不可修改):</label>
+                <input type="text" value="{{ mission.mid }}" disabled style="background: #eee; color: #777;">
+                </div>
+            <div class="form-group">
+                <label>任务名称 (Name):</label>
+                <input type="text" name="name" required value="{{ mission.name }}">
+            </div>
+            <div class="form-group">
+                <label>类型 (Type):</label>
+                <select name="type" id="typeSelect" onchange="toggleCrewSections()">
+                    <option value="载人" {% if mission.type == '载人' %}selected{% endif %}>载人 (Manned)</option>
+                    <option value="货运" {% if mission.type == '货运' %}selected{% endif %}>货运 (Cargo)</option>
+                    <option value="舱段" {% if mission.type == '舱段' %}selected{% endif %}>舱段 (Module)</option>
+                </select>
+            </div>
+            <div class="form-group" style="display: flex; gap: 20px;">
+            <div style="flex: 1;">
+                <label>发射时间 (Launch Time):</label>
+                <input type="datetime-local" step="1" name="start" required 
+                    value="{{ mission.start|replace(' ', 'T') if mission.start else '' }}">
+            </div>
+            <div style="flex: 1;">
+                <label>返回/结束时间 (End Time):</label>
+                <input type="datetime-local" step="1" name="end" 
+                    value="{{ mission.end|replace(' ', 'T') if mission.end else '' }}">
+            </div>
+        </div>
+            <div id="manned-options">
+                <div class="form-group">
+                    <label class="checkbox-label">
+                        <input type="checkbox" id="sameCrewCheck" name="same_crew" 
+                               {% if is_same_crew %}checked{% endif %} 
+                               onchange="toggleCrewSections()">
+                        <span>发射与返回乘组相同 (Launch & Landing crew are same)</span>
+                    </label>
+                </div>
 
-{% block title %}编辑任务 - {{ mission.name }}{% endblock %}
+                <div class="crew-section" id="launch-crew-section">
+                    <h3 id="launch-crew-title">🚀 任务乘组 (Mission Crew)</h3>
+                    {% for i in range(3) %}
+                    <div class="form-group">
+                        <label>乘员 {{ i+1 }}:</label>
+                        <select name="launch_0{{ i+1 }}">
+                            <option value="">-- 选择 (None) --</option>
+                            {% for a in all_astronauts %}
+                            <option value="{{ a.uid }}" 
+                                    {% if launch_crew[i] == a.uid %}selected{% endif %}>
+                                {{ a.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endfor %}
+                </div>
 
-{% block content %}
-   <style>
-      .admin-form { background: #fdfdfd; border: 1px solid #ddd; padding: 25px; border-radius: 8px; }
-      .form-group { margin-bottom: 15px; }
-      .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
-      .form-group input, .form-group select { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
-      .form-group input[readonly] { background-color: #eee; cursor: not-allowed; }
-      .form-group select[multiple] { height: 150px; }
-      .form-button { background-color: #800020; color: white; padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; }
-      .form-button:hover { background-color: #600018; }
-   </style>
+                <div class="crew-section hidden" id="landing-crew-section">
+                    <h3 style="color: #27ae60;">🛬 返回乘组 (Landing Crew)</h3>
+                    {% for i in range(3) %}
+                    <div class="form-group">
+                        <label>返回乘员 {{ i+1 }}:</label>
+                        <select name="land_0{{ i+1 }}">
+                            <option value="">-- 选择 (None) --</option>
+                            {% for a in all_astronauts %}
+                            <option value="{{ a.uid }}" 
+                                    {% if land_crew[i] == a.uid %}selected{% endif %}>
+                                {{ a.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div> <div style="margin-top: 30px; display: flex; gap: 15px;">
+                <button type="submit" class="btn-submit">💾 保存修改 (Save Changes)</button>
+                <a href="/missions/{{ mission.mid }}" style="padding: 12px 24px; background: #95a5a6; color: white; text-decoration: none; border-radius: 4px; font-weight: bold; text-align: center;">取消 (Cancel)</a>
+            </div>
+        </form>
+    </div>
 
-   <h1>编辑任务: {{ mission.name }}</h1>
-   
-   <form class="admin-form" action="" method="POST">
-      
-      <div class="form-group">
-         <label for="name">任务名称 (Mission Name)</label>
-         <input type="text" id="name" name="name" value="{{ mission.name }}" required>
-      </div>
-      
-      <div class="form-group">
-         <label for="mid">任务 ID (不可更改)</label>
-         <input type="text" id="mid" name="mid" value="{{ mission.mid }}" readonly>
-      </div>
-      
-      <div class="form-group">
-         <label for="type">任务类型 (Type)</label>
-         <select id="type" name="type" onchange="toggleCrewSelect()">
-            <option value="载人" {% if mission.type == '载人' %}selected{% endif %}>载人</option>
-            <option value="货运" {% if mission.type == '货运' %}selected{% endif %}>货运</option>
-            <option value="测试" {% if mission.type == '测试' %}selected{% endif %}>测试</option>
-            <option value="舱段" {% if mission.type == '舱段' %}selected{% endif %}>舱段</option>
-         </select>
-      </div>
+    <script>
+        function toggleCrewSections() {
+            const type = document.getElementById('typeSelect').value;
+            const sameCrew = document.getElementById('sameCrewCheck').checked;
+            const mannedOptions = document.getElementById('manned-options');
+            const landingSection = document.getElementById('landing-crew-section');
+            const launchTitle = document.getElementById('launch-crew-title');
 
-      <div class="form-group" id="crew-select-group">
-         <label>飞行乘组 (Crew Members)</label>
-         
-         <label for="crew_01" style="font-weight:normal; margin-top: 5px;">乘员 01:</label>
-         <select id="crew_01" name="crew_01">
-            <option value="">-- [空] --</option>
-            {% for astro in all_astronauts %}
-               <option value="{{ astro.uid }}" 
-                  {% if current_crew and current_crew|length > 0 and astro.uid == current_crew[0] %}selected{% endif %}>
-                  {{ astro.name }}
-               </option>
-            {% endfor %}
-         </select>
-         
-         <label for="crew_02" style="font-weight:normal; margin-top: 5px;">乘员 02:</label>
-         <select id="crew_02" name="crew_02">
-            <option value="">-- [空] --</option>
-            {% for astro in all_astronauts %}
-               <option value="{{ astro.uid }}" 
-                  {% if current_crew and current_crew|length > 1 and astro.uid == current_crew[1] %}selected{% endif %}>
-                  {{ astro.name }}
-               </option>
-            {% endfor %}
-         </select>
-         
-         <label for="crew_03" style="font-weight:normal; margin-top: 5px;">乘员 03:</label>
-         <select id="crew_03" name="crew_03">
-            <option value="">-- [空] --</option>
-            {% for astro in all_astronauts %}
-               <option value="{{ astro.uid }}" 
-                  {% if current_crew and current_crew|length > 2 and astro.uid == current_crew[2] %}selected{% endif %}>
-                  {{ astro.name }}
-               </option>
-            {% endfor %}
-         </select>
-      </div>
-      
-      <div class="form-group">
-         <label for="start">开始时间 (Start Time)</label>
-         <small>格式 (Format): YYYY-MM-DD HH:MM:SS</small>
-         <input type="text" id="start" name="start" value="{{ mission.start or '' }}">
-      </div>
+            // 1. Show/Hide entire crew area based on mission type
+            if (type === '载人') {
+                mannedOptions.style.display = 'block';
+            } else {
+                mannedOptions.style.display = 'none';
+            }
 
-      <div class="form-group">
-         <label for="end">结束时间 (End Time)</label>
-         <small>进行中请留白 (Leave blank if ongoing)</small>
-         <input type="text" id="end" name="end" value="{{ mission.end or '' }}">
-      </div>
-      
-      <button type="submit" class="form-button">保存更改 (Save Changes)</button>
-      
-   </form>
-
-   <script>
-      function toggleCrewSelect() {
-         var missionType = document.getElementById('type').value;
-         var crewSelect = document.getElementById('crew-select-group');
-         
-         // 修复：这里必须匹配 HTML select 中的 value 值 '载人'
-         if (missionType === '载人') {
-            crewSelect.style.display = 'block'; 
-         } else {
-            crewSelect.style.display = 'none';  
-         }
-      }
-      
-      // 页面加载时运行一次以设置正确的初始状态
-      document.addEventListener('DOMContentLoaded', toggleCrewSelect);
-   </script>
-{% endblock %}
+            // 2. Show/Hide Landing section based on checkbox
+            if (sameCrew) {
+                landingSection.classList.add('hidden');
+                launchTitle.textContent = "🚀 任务乘组 (Mission Crew)";
+            } else {
+                landingSection.classList.remove('hidden');
+                launchTitle.textContent = "🛫 发射乘组 (Launch Crew)";
+                launchTitle.style.color = "#2980b9";
+            }
+        }
+        // Initialize on load
+        toggleCrewSections();
+    </script>
+</body>
+</html>
