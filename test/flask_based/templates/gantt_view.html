@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Mission Timeline</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f5f5f5;}
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: inline-block;
+        }
+        img { max-width: 100%; height: auto; }
+        .nav { margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+    <div class="nav">
+        <a href="/">返回首页</a> | 
+        <a href="/css-missions/">返回列表</a>
+    </div>
+    <div class="chart-container">
+        <img src="{{ url_for('css_gantt_chart') }}" alt="China Space Station Gantt Chart">
+    </div>
+</body>
+</html>

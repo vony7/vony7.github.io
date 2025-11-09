@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, abort
+from flask import Flask, render_template, request, abort,send_file
 from datetime import datetime, timezone, timedelta
 from dateutil import parser
 import sqlite3
@@ -7,8 +7,23 @@ import os
 from flask_httpauth import HTTPBasicAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import redirect, url_for
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+from matplotlib.font_manager import FontProperties
+import io
+import pandas as pd
+import numpy as np
+import matplotlib.dates as mdates
+import plotly.express as px
+import plotly.io as pio
 
 tz_utc8 = timezone("Asia/Shanghai")
+# --- Matplotlib Chinese Font Configuration ---
+# Try to set a font that supports Chinese. 
+# If your chart shows boxes instead of characters, you need to install a CJK font on your server.
+plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'WenQuanYi Micro Hei', 'PingFang SC', 'sans-serif']
+plt.rcParams['axes.unicode_minus'] = False # Fixes minus sign issues
 
 # --- ADD THIS: Basic Auth Setup ---
 app = Flask(__name__)  # <-- CREATE THE APP FIRST!
@@ -33,6 +48,175 @@ def index():
     return render_template("index.html")
 
 # -------------------- Helpers --------------------
+@app.route("/css-missions/interactive")
+def css_interactive_chart():
+    conn = sqlite3.connect("astronauts.db")
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # 1. Fetch CSS missions, sorted by start date
+    cursor.execute("SELECT name, type, start, end FROM missions WHERE start >= '2021-04-29' ORDER BY start ASC")
+    data = cursor.fetchall()
+    conn.close()
+
+    if not data:
+        return "No data found for CSS missions."
+
+    # 2. Process Data with Pandas
+    df = pd.DataFrame([{k: row[k] for k in row.keys()} for row in data])
+    
+    # Robust datetime conversion
+    df['start'] = pd.to_datetime(df['start'], format='mixed', errors='coerce')
+    df['end'] = pd.to_datetime(df['end'], format='mixed', errors='coerce')
+    
+    # Remove rows with invalid start dates
+    df = df.dropna(subset=['start'])
+
+    # Handle ongoing missions: Fill NaT (Not a Time) with current time right before plotting
+    # We keep a separate column for the 'real' end date string for the hover tooltip
+    df['end_str'] = df['end'].dt.strftime('%Y-%m-%d').fillna('进行中 (Ongoing)')
+    now = datetime.now()
+    df['end_plot'] = df['end'].fillna(now)
+
+    # Calculate duration in days for hover info
+    df['duration_days'] = (df['end_plot'] - df['start']).dt.days
+
+    # 3. Create Plotly Timeline
+    # Define specific colors to match your previous chart
+    color_map = {
+        '载人': '#e74c3c',   # Red
+        '舱段': '#3498db',   # Blue
+        '货运': '#f1c40f'    # Yellow
+    }
+
+    fig = px.timeline(
+        df, 
+        x_start="start", 
+        x_end="end_plot", 
+        y="name",
+        color="type",
+        title="中国空间站任务交互进度图 (China Space Station Interactive Timeline)",
+        color_discrete_map=color_map,
+        hover_name="name",
+        # Custom data to show in hover tooltip
+        custom_data=["type", "start", "end_str", "duration_days"]
+    )
+
+    # 4. Customize Interactivity and layout
+    fig.update_yaxes(
+        autorange="reversed", # Ensure first mission is at the top
+        title=None            # Hide Y-axis label "name"
+    )
+    fig.update_xaxes(
+        title="日期 (Date)",
+        rangeslider_visible=True # Adds a mini-timeline slider at the bottom
+    )
+
+    # Customize the hover tooltip to be readable
+    fig.update_traces(
+        hovertemplate="<b>%{y}</b><br>" +
+                      "类型 (Type): %{customdata[0]}<br>" +
+                      "发射 (Start): %{customdata[1]|%Y-%m-%d}<br>" +
+                      "结束 (End): %{customdata[2]}<br>" +
+                      "时长 (Duration): %{customdata[3]} 天<extra></extra>"
+    )
+
+    # Set overall layout size and language font preference
+    fig.update_layout(
+        height=max(600, len(df) * 40), # Dynamic height based on number of missions
+        font=dict(family="Microsoft YaHei, SimHei, sans-serif", size=14),
+        hovermode="closest",
+        legend_title_text='任务类型 (Mission Type)'
+    )
+
+    # Add a 'Today' reference line
+    fig.add_vline(x=now.timestamp() * 1000, line_width=2, line_dash="dash", line_color="red")
+
+    # 5. Convert to HTML and render template
+    # full_html=False means it just gives us the <div>, not a whole <html> page
+    chart_html = pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
+    
+    return render_template("interactive_chart.html", chart_html=chart_html)
+
+# Route 2: The viewer page
+@app.route("/css-missions/gantt")
+def css_gantt_view():
+    return render_template("gantt_view.html")
+
+@app.route("/chart/css-gantt.png")
+def css_gantt_chart():
+    # --- Optional: Configure Chinese Fonts if you haven't already ---
+    plt.rcParams['font.sans-serif'] = ['SimHei', 'Microsoft YaHei', 'WenQuanYi Micro Hei', 'PingFang SC', 'sans-serif']
+    plt.rcParams['axes.unicode_minus'] = False 
+
+    conn = sqlite3.connect("astronauts.db")
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # 1. Fetch only CSS missions (after Tianhe launch 2021-04-29)
+    cursor.execute("SELECT name, type, start, end FROM missions WHERE start >= '2021-04-29' ORDER BY start ASC")
+    data = cursor.fetchall()
+    conn.close()
+
+    if not data:
+        # Handle case with no data
+        fig, ax = plt.subplots()
+        ax.text(0.5, 0.5, "No CSS Data Found", ha='center')
+        img = io.BytesIO()
+        plt.savefig(img, format='png')
+        img.seek(0)
+        plt.close(fig)
+        return send_file(img, mimetype='image/png')
+
+    # 2. Process Data with Pandas
+    df = pd.DataFrame([{k: row[k] for k in row.keys()} for row in data])
+    
+    # Convert to datetime
+    df['start'] = pd.to_datetime(df['start'])
+    df['end'] = pd.to_datetime(df['end'])
+    
+    # Fill ongoing missions with current time for visualization
+    now = datetime.now()
+    df['end'] = df['end'].fillna(now)
+
+    # Calculate duration
+    df['start_num'] = mdates.date2num(df['start'])
+    df['end_num'] = mdates.date2num(df['end'])
+    df['duration'] = df['end_num'] - df['start_num']
+
+    # 3. Create Plot
+    fig_height = max(6, len(df) * 0.5)
+    fig, ax = plt.subplots(figsize=(14, fig_height))
+
+    colors = {'载人': '#e74c3c', '货运': '#3498db', '舱段': '#f1c40f'}
+    default_c = '#95a5a6'
+
+    for i, row in df.iterrows():
+        c = colors.get(row['type'], default_c)
+        ax.barh(row['name'], row['duration'], left=row['start_num'], 
+                color=c, edgecolor='black', height=0.6, alpha=0.9)
+
+    # 4. Format Chart
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+    ax.xaxis.set_major_locator(mdates.MonthLocator(interval=3))
+    fig.autofmt_xdate()
+
+    ax.grid(True, axis='x', linestyle='--', alpha=0.5)
+    ax.set_xlabel('日期 (Date)')
+    ax.set_title('中国空间站任务进度 (China Space Station Timeline)', fontsize=14, pad=20)
+
+    # Add 'Today' line
+    ax.axvline(mdates.date2num(now), color='red', linestyle='--', alpha=0.5)
+
+    # 5. Save to memory buffer
+    img = io.BytesIO()
+    plt.tight_layout()
+    plt.savefig(img, format='png', dpi=100)
+    img.seek(0)
+    plt.close(fig)
+
+    return send_file(img, mimetype='image/png')
+
 def calculate_mission_duration(start_str, end_str):
     """Helper function to calculate mission duration with timezone handling"""
     if not start_str or start_str == "0":
@@ -524,6 +708,75 @@ def mission_detail(mid):
         mission=mission, 
         crew=crew, 
         duration=duration_info
+    )
+
+
+# 在 app.py 中添加
+
+@app.route("/css-missions/")
+def css_mission_list():
+    # 1. 基本设置
+    sort_by = request.args.get("sort_by", "start")
+    order = request.args.get("order", "desc")
+    # 这里我们不需要 'type' 过滤器，因为这是专门的 CSS 视图，
+    # 但如果你想在 CSS 任务中再过滤载人/货运，可以保留它。
+    mission_type = request.args.get("type") 
+
+    conn = sqlite3.connect("astronauts.db")
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # 2. 核心修改：强制过滤 2021-04-29 之后的任务 (天和核心舱发射日期)
+    query = "SELECT * FROM missions WHERE start >= '2021-04-29'"
+    params = []
+
+    # 可选：如果还想支持在 CSS 任务中进一步筛选类型
+    if mission_type:
+        query += " AND type = ?"
+        params.append(mission_type)
+
+    cursor.execute(query, params)
+    missions = cursor.fetchall()
+
+    # 3. 数据处理 (与标准任务列表相同)
+    mission_data = []
+    for m in missions:
+        cursor.execute(
+            "SELECT a.name, a.uid FROM mission_crew mc JOIN astronauts_cn a ON mc.astronaut_uid = a.uid WHERE mc.mission_id = ? ORDER BY mc.crew_order ASC",
+            (m["id"],)
+        )
+        crew = cursor.fetchall()
+        total_seconds, duration_display, status = calculate_mission_duration(m["start"], m["end"])
+        
+        mission_data.append({
+            "name": m["name"],
+            "mid": m["mid"],
+            "type": m["type"],
+            "start": m["start"],
+            "end": m["end"] or "进行中",
+            "duration_display": duration_display,
+            "duration_seconds": total_seconds,
+            "crew": crew,
+            "status": status
+        })
+
+    conn.close()
+
+    # 4. 排序逻辑 (与标准任务列表相同)
+    reverse = order == "desc"
+    if sort_by == "duration":
+        mission_data.sort(key=lambda m: m["duration_seconds"], reverse=reverse)
+    elif sort_by in ("start", "end"):
+         mission_data.sort(key=lambda m: (m[sort_by] if m[sort_by] and m[sort_by] != "0" else "9999-12-31"), reverse=reverse)
+
+    # 5. 复用 missions.html 模板，但传入一个特殊的 title
+    return render_template(
+        "missions.html",
+        missions=mission_data,
+        selected_type=mission_type,
+        sort_by=sort_by,
+        order=order,
+        page_title="中国空间站任务 (China Space Station)" # 传递一个新变量用于显示标题
     )
     
 # -------------------------------------------------

@@ -1,109 +1,166 @@
 {% extends 'base.html' %}
 
-{% block title %}任务列表 - 中国航天数据库{% endblock %}
+{% block title %}{{ page_title or '所有任务列表' }} - 中国航天数据库{% endblock %}
 
 {% block content %}
-  <style>
-    .missions-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-    .missions-table th, .missions-table td { border: 1px solid #ddd; padding: 10px; text-align: left; }    
-    .missions-table th { background-color: #f2f2f2; }
-    .missions-table tr:hover { background-color: #f9f9f9; }
-    .filter-bar {
-      padding: 10px;
-      background: #f9f9f9;
-      border-radius: 4px;
-      margin-bottom: 20px;
-    }
-    .filter-bar a {
-      margin-right: 15px;
-      font-weight: bold;
-    }
-    .filter-bar a.active {
-      text-decoration: underline;
-      color: #000;
-    }
-  </style>
+<style>
+  .missions-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
 
-  <h1>所有飞行任务</h1>
+  .missions-table th,
+  .missions-table td {
+    border: 1px solid #ddd;
+    padding: 10px;
+    text-align: left;
+  }
 
-  <div class="filter-bar">
-    <span>按类型筛选:</span>
-    
-    <a href="{{ url_for('mission_list') }}"
-       class="{% if not selected_type %}active{% endif %}">
-       所有
-    </a>
-    
-    <a href="{{ url_for('mission_list', type='载人') }}"
-       class="{% if selected_type == 'Crew' %}active{% endif %}">
-       载人
-    </a>
-    
-    <a href="{{ url_for('mission_list', type='货运') }}"
-       class="{% if selected_type == 'Cargo' %}active{% endif %}">
-       货运
-    </a>
-    
-    <a href="{{ url_for('mission_list', type='测试') }}"
-       class="{% if selected_type == 'Unmanned Test' %}active{% endif %}">
-       测试
-    </a>
+  .missions-table th {
+    background-color: #f2f2f2;
+  }
 
-        <a href="{{ url_for('mission_list', type='舱段') }}"
-       class="{% if selected_type == 'Module' %}active{% endif %}">
-       舱段
-    </a>
-  </div>
+  .missions-table tr:hover {
+    background-color: #f9f9f9;
+  }
 
+  .filter-bar {
+    padding: 10px;
+    background: #f9f9f9;
+    border-radius: 4px;
+    margin-bottom: 20px;
+  }
 
-  <table class="missions-table">
-    <thead>
-      <tr>
-        <th>任务名称</th>
-        <th>类型</th>
-<th>
-          <a href="{{ url_for('mission_list', type=selected_type, sort_by='start', order='asc' if not (sort_by == 'start' and order == 'asc') else 'desc') }}">
-            开始时间
-            {% if sort_by == 'start' %}
-              <span class="sort-arrow">{% if order == 'asc' %}↑{% else %}↓{% endif %}</span>
-            {% endif %}
-          </a>
-        </th>
-        <th>状态</th>
-<th>
-          <a href="{{ url_for('mission_list', type=selected_type, sort_by='duration', order='asc' if not (sort_by == 'duration' and order == 'asc') else 'desc') }}">
-            时长
-            {% if sort_by == 'duration' %}
-              <span class="sort-arrow">{% if order == 'asc' %}↑{% else %}↓{% endif %}</span>
-            {% endif %}
-          </a>
-        </th>
-        <th>乘组</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for m in missions %}
-      <tr>
-        <td><a href="{{ url_for('mission_detail', mid=m.mid) }}"><b>{{ m.name }}</b></a></td>
-        <td>{{ m.type }}</td>
-        <td>{{ m.start }}</td>
-        <td>
-          {% if m.status == 'completed' %}已完成
-          {% elif m.status == 'ongoing' %}执行中
-          {% elif m.status == 'future' %}计划中
+  .filter-bar a {
+    margin-right: 15px;
+    font-weight: bold;
+    color: #007bff;
+    text-decoration: none;
+  }
+
+  .filter-bar a:hover {
+    text-decoration: underline;
+  }
+
+  .filter-bar a.active {
+    text-decoration: underline;
+    color: #000;
+    cursor: default;
+  }
+
+  .sort-arrow {
+    font-size: 0.8em;
+    margin-left: 5px;
+  }
+</style>
+
+<h1>{{ page_title or '所有飞行任务' }}</h1>
+
+<div style="margin: 20px 0;">
+  <a href="/css-missions/gantt" class="btn-primary">
+    📊 查看任务进度图 (View Timeline)
+  </a>
+</div>
+<div style="margin: 20px 0;">
+  <a href="/css-missions/interactive" class="btn-primary"
+    style="background-color: #e67e22; padding: 10px 20px; color: white; text-decoration: none; border-radius: 5px; display: inline-block;">
+    📊 查看交互式进度图 (Interactive Timeline)
+  </a>
+</div>
+
+<div class="filter-bar">
+  <span>按类型筛选:</span>
+
+  {% set current_endpoint = request.endpoint %}
+
+  <a href="{{ url_for(current_endpoint) }}" class="{% if not selected_type %}active{% endif %}">
+    所有
+  </a>
+
+  <a href="{{ url_for(current_endpoint, type='载人') }}" class="{% if selected_type == '载人' %}active{% endif %}">
+    载人
+  </a>
+
+  <a href="{{ url_for(current_endpoint, type='货运') }}" class="{% if selected_type == '货运' %}active{% endif %}">
+    货运
+  </a>
+
+  <a href="{{ url_for(current_endpoint, type='测试') }}" class="{% if selected_type == '测试' %}active{% endif %}">
+    测试
+  </a>
+
+  <a href="{{ url_for(current_endpoint, type='舱段') }}" class="{% if selected_type == '舱段' %}active{% endif %}">
+    舱段
+  </a>
+</div>
+
+<table class="missions-table">
+  <thead>
+    <tr>
+      <th>任务名称</th>
+      <th>类型</th>
+      <th>
+        <a
+          href="{{ url_for(current_endpoint, type=selected_type, sort_by='start', order='asc' if not (sort_by == 'start' and order == 'asc') else 'desc') }}">
+          开始时间
+          {% if sort_by == 'start' %}
+          <span class="sort-arrow">{% if order == 'asc' %}↑{% else %}↓{% endif %}</span>
           {% endif %}
-        </td>
-        <td>{{ m.duration_display }}</td>
-        <td>
-          {% for astronaut in m.crew %}
-            <a href="{{ url_for('astronaut_profile', uid=astronaut.uid) }}">{{ astronaut.name }}</a>{% if not loop.last %}, {% endif %}
-          {% else %}
-            N/A
-          {% endfor %}
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+        </a>
+      </th>
+      <th>状态</th>
+      <th>
+        <a
+          href="{{ url_for(current_endpoint, type=selected_type, sort_by='duration', order='asc' if not (sort_by == 'duration' and order == 'asc') else 'desc') }}">
+          时长
+          {% if sort_by == 'duration' %}
+          <span class="sort-arrow">{% if order == 'asc' %}↑{% else %}↓{% endif %}</span>
+          {% endif %}
+        </a>
+      </th>
+      <th>乘组</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for m in missions %}
+    <tr>
+      <td><a href="{{ url_for('mission_detail', mid=m.mid) }}"><b>{{ m.name }}</b></a></td>
+      <td>
+        {% if m.type == '载人' %}👤 载人
+        {% elif m.type == '货运' %}📦 货运
+        {% elif m.type == '舱段' %}🏠 舱段
+        {% elif m.type == '测试' %}🔧 测试
+        {% else %}{{ m.type }}{% endif %}
+      </td>
+      <td>{{ m.start }}</td>
+      <td>
+        {% if m.status == 'completed' %}
+        <span style="color: green;">● 已完成</span>
+        {% elif m.status == 'ongoing' %}
+        <span style="color: blue; font-weight: bold;">● 执行中</span>
+        {% elif m.status == 'future' %}
+        <span style="color: gray;">● 计划中</span>
+        {% endif %}
+      </td>
+      <td>{{ m.duration_display }}</td>
+      <td>
+        {% for astronaut in m.crew %}
+        <a href="{{ url_for('astronaut_profile', uid=astronaut.uid) }}">{{ astronaut.name }}</a>{% if not loop.last %},
+        {% endif %}
+        {% else %}
+        <span style="color: #999;">-</span>
+        {% endfor %}
+      </td>
+    </tr>
+    {% else %}
+    <tr>
+      <td colspan="6" style="text-align: center; padding: 20px; color: gray;">
+        没有找到符合筛选条件的任务。
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 
 {% endblock %}

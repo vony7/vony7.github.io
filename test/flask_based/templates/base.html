@@ -71,7 +71,9 @@
         <li><a href="{{ url_for('index') }}">主页</a></li>
         <li><a href="{{ url_for('mission_list') }}">飞行任务</a></li>
         <li><a href="{{ url_for('chinese_astronauts') }}">航天员</a></li>
-        
+        <a href="{{ url_for('css_mission_list') }}" style="font-weight: bold;">
+       空间站
+    </a>
         <li style="margin-left: auto; background-color: #800020; padding: 0 5px; border-radius: 3px;">
           <a href="{{ url_for('admin_mission_list') }}">管理任务</a>
         </li>
