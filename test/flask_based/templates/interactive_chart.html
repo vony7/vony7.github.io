@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>CSS 交互式任务进度图</title>
+    <title>{{ page_title or '交互式图表' }}</title>
     <style>
         body {
             font-family: 'Microsoft YaHei', sans-serif;
@@ -32,12 +32,55 @@
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
+
+        /* --- NEW CSS FOR IMAGE ZOOM --- */
+        /* Target the SVG images inside Plotly's image layer */
+        .js-plotly-plot .imagelayer image {
+            transition: transform 0.2s ease-out;
+            /* These two lines are critical for SVG scaling to work correctly */
+            transform-origin: center center;
+            transform-box: fill-box; 
+            cursor: pointer;
+        }
+        /* Scale up by 50% on hover */
+        .js-plotly-plot .imagelayer image:hover {
+            transform: scale(1.5);
+            /* Optional: bring it to the front visually if it overlaps others */
+            z-index: 999; 
+        }
+        /* ... your existing basic styles ... */
+        body { font-family: 'Microsoft YaHei', sans-serif; margin: 0; padding: 20px; background-color: #f8f9fa; }
+        .nav { margin-bottom: 20px; padding: 10px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .nav a { text-decoration: none; color: #3498db; margin-right: 15px; font-weight: bold; }
+        .nav a:hover { text-decoration: underline; }
+        .chart-container { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
+        /* --- UPDATED AGGRESSIVE HOVER CSS --- */
+        /* We use !important to override any inline styles Plotly might apply */
+        .js-plotly-plot .imagelayer image {
+            cursor: pointer !important;
+            /* CRITICAL: This forces the browser to let mouse events reach the image */
+            pointer-events: all !important; 
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important; /* Smooth, slightly bouncy zoom */
+            transform-origin: center center !important;
+            transform-box: fill-box !important;
+        }
+
+        .js-plotly-plot .imagelayer image:hover {
+            /* Scale up to 180% for a very obvious effect */
+            transform: scale(1.8) !important;
+        }
+    </style>
     </style>
 </head>
 <body>
     <div class="nav">
         <a href="/">🏠 返回首页 (Home)</a>
-        <a href="/css-missions/">🚀 返回任务列表 (Mission List)</a>
+        {% if 'cumulative' in request.path %}
+             <a href="/astronauts/">👩‍🚀 返回航天员列表 (Astronaut List)</a>
+        {% else %}
+             <a href="/css-missions/">🚀 返回任务列表 (Mission List)</a>
+        {% endif %}
     </div>
 
     <div class="chart-container">

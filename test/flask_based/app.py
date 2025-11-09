@@ -17,6 +17,8 @@ import numpy as np
 import matplotlib.dates as mdates
 import plotly.express as px
 import plotly.io as pio
+from PIL import Image, ImageDraw, ImageOps
+import base64
 
 tz_utc8 = timezone("Asia/Shanghai")
 # --- Matplotlib Chinese Font Configuration ---
@@ -48,6 +50,130 @@ def index():
     return render_template("index.html")
 
 # -------------------- Helpers --------------------
+def get_circular_photo(uid):
+    """Helper to create a circular base64 image on the fly for Plotly"""
+    # 1. Find the image path (similar logic to resolve_astronaut_photo)
+    base_dir = os.path.join(app.root_path, "static", "images", "astronauts")
+    jpg = os.path.join(base_dir, f"{uid}.jpg")
+    png = os.path.join(base_dir, f"{uid}.png")
+    
+    img_path = None
+    if os.path.exists(jpg):
+        img_path = jpg
+    elif os.path.exists(png):
+        img_path = png
+    else:
+        img_path = os.path.join(base_dir, "default.jpg")
+
+    # 2. Use Pillow to crop it into a circle
+    try:
+        with Image.open(img_path) as img:
+            img = img.convert("RGBA")
+            # Resize/crop to a perfect square first
+            size = min(img.size)
+            img = ImageOps.fit(img, (size, size), centering=(0.5, 0.5))
+
+            # Create the circular mask
+            mask = Image.new('L', (size, size), 0)
+            draw = ImageDraw.Draw(mask)
+            draw.ellipse((0, 0, size, size), fill=255)
+
+            # Apply the mask to the image alpha channel
+            img.putalpha(mask)
+
+            # 3. Save to memory as PNG and convert to base64
+            buffer = io.BytesIO()
+            img.save(buffer, format="PNG")
+            img_str = base64.b64encode(buffer.getvalue()).decode()
+            return f"data:image/png;base64,{img_str}"
+    except Exception as e:
+        print(f"Error processing image for {uid}: {e}")
+        return "" # Return empty if failed
+
+@app.route("/astronauts/chart/cumulative")
+def astronaut_cumulative_chart():
+    conn = sqlite3.connect("astronauts.db")
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    # 1. Fetch Data
+    sql = """
+        SELECT a.name as astronaut, a.uid, m.name as mission, m.start, m.end
+        FROM mission_crew mc
+        JOIN astronauts_cn a ON mc.astronaut_uid = a.uid
+        JOIN missions m ON mc.mission_id = m.id
+        ORDER BY m.start ASC
+    """
+    cursor.execute(sql)
+    data = cursor.fetchall()
+    conn.close()
+
+    if not data:
+        return "No mission data found."
+
+    # 2. Process Data
+    df = pd.DataFrame([{k: row[k] for k in row.keys()} for row in data])
+    df['start_dt'] = pd.to_datetime(df['start'], format='mixed', errors='coerce')
+    df['end_dt'] = pd.to_datetime(df['end'], format='mixed', errors='coerce')
+
+    tz_cn = timezone("Asia/Shanghai")
+    now_cn = datetime.now(tz_cn).replace(tzinfo=None)
+    df['end_plot'] = df['end_dt'].fillna(now_cn)
+    df['duration_days'] = (df['end_plot'] - df['start_dt']).dt.days
+
+    total_durations = df.groupby('astronaut')['duration_days'].sum().sort_values(ascending=False)
+    sorted_names = total_durations.index.tolist()
+
+    # --- KEY CHANGE IS HERE ---
+    # Use the new helper to get circular base64 images
+    unique_astronauts = df[['astronaut', 'uid']].drop_duplicates()
+    photo_map = {row['astronaut']: get_circular_photo(row['uid']) for _, row in unique_astronauts.iterrows()}
+    # --------------------------
+
+    # 4. Create Chart
+    fig = px.bar(
+        df,
+        x="astronaut",
+        y="duration_days",
+        color="mission",
+        title="中国航天员累计在轨时长 (Cumulative Time in Space)",
+        labels={"astronaut": "", "duration_days": "在轨时长 (天)", "mission": "执行任务"},
+        color_discrete_sequence=px.colors.qualitative.G10,
+        custom_data=["mission"]
+    )
+
+    # 5. Customize Layout
+    fig.update_layout(
+        xaxis={'categoryorder':'array', 'categoryarray': sorted_names, 'tickfont': {'size': 14}},
+        font=dict(family="Microsoft YaHei, SimHei, sans-serif", size=14),
+        hovermode="closest",
+        legend_traceorder="reversed",
+        height=800,
+        margin=dict(b=130) # Keep this margin high for the photos
+    )
+
+    # Loop and add circular photos
+    for name in sorted_names:
+        fig.add_layout_image(
+            source=photo_map[name],
+            x=name,
+            y=-0.08,
+            xref="x",
+            yref="paper",
+            sizex=0.8,
+            sizey=0.13,
+            xanchor="center",
+            yanchor="top",
+            layer="above"
+        )
+
+    fig.update_traces(
+        hovertemplate="<b>%{x}</b><br>任务: %{customdata[0]}<br>时长: %{y} 天<extra></extra>"
+    )
+
+    chart_html = pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
+    return render_template("interactive_chart.html", chart_html=chart_html, page_title="航天员累计时长")
+
 @app.route("/css-missions/interactive")
 def css_interactive_chart():
     conn = sqlite3.connect("astronauts.db")
