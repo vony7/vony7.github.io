@@ -13,8 +13,8 @@
     }
     .avatar {
       float: right;
-      width: 120px;
-      height: 120px;
+      width: 240px;
+      height: 240px;
       border-radius: 50%;
       object-fit: cover;
       margin-left: 20px;
@@ -76,6 +76,26 @@
     }
   </style>
 
+  <div style="margin-top: 15px;">
+    <a href="{{ url_for('edit_astronaut', uid=astronaut.uid) }}" class="edit-button">
+       👤 编辑资料
+    </a>
+</div>
+
+<style>
+    .edit-button {
+        display: inline-block;
+        padding: 5px 10px;
+        background-color: #28a745; /* 绿色，以此区分任务编辑 */
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+    .edit-button:hover {
+        background-color: #1e7e34;
+    }
+</style>
   <div class="profile-card">
         <img class="avatar"
          src="{{ url_for('static', filename='images/astronauts/' ~ astronaut.uid ~ '.jpg') }}"

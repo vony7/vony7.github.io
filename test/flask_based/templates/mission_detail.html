@@ -17,7 +17,26 @@
       <h3>{{ mission.type }}飞行任务</h3>
     </div>
   </div>
+<div style="margin-top: 20px;">
+    <a href="{{ url_for('edit_mission', mid=mission.mid) }}" class="button-link">
+       ✏️ 编辑此任务
+    </a>
+</div>
 
+<style>
+    .button-link {
+        display: inline-block;
+        padding: 8px 15px;
+        background-color: #007bff; /* 蓝色 */
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-size: 0.9em;
+    }
+    .button-link:hover {
+        background-color: #0056b3;
+    }
+</style>
   <div class="mission-info" style="margin: 20px 0;">
     <style>
       .info-row { display: flex; margin: 10px 0; }
