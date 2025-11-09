@@ -54,7 +54,7 @@ def css_interactive_chart():
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # 1. Fetch CSS missions, sorted by start date
+    # 1. Fetch CSS missions
     cursor.execute("SELECT name, type, start, end FROM missions WHERE start >= '2021-04-29' ORDER BY start ASC")
     data = cursor.fetchall()
     conn.close()
@@ -62,80 +62,60 @@ def css_interactive_chart():
     if not data:
         return "No data found for CSS missions."
 
-    # 2. Process Data with Pandas
+    # 2. Process Data
     df = pd.DataFrame([{k: row[k] for k in row.keys()} for row in data])
     
-    # Robust datetime conversion
-    df['start'] = pd.to_datetime(df['start'], format='mixed', errors='coerce')
-    df['end'] = pd.to_datetime(df['end'], format='mixed', errors='coerce')
-    
-    # Remove rows with invalid start dates
-    df = df.dropna(subset=['start'])
+    # Save raw strings for hover display
+    df['start_str'] = df['start'].astype(str)
+    df['end_str'] = df['end'].fillna('进行中 (Ongoing)').astype(str)
 
-    # Handle ongoing missions: Fill NaT (Not a Time) with current time right before plotting
-    # We keep a separate column for the 'real' end date string for the hover tooltip
-    df['end_str'] = df['end'].dt.strftime('%Y-%m-%d').fillna('进行中 (Ongoing)')
-    now = datetime.now()
-    df['end_plot'] = df['end'].fillna(now)
+    # Convert for plotting
+    df['start_plot'] = pd.to_datetime(df['start'], format='mixed', errors='coerce')
+    df['end_plot'] = pd.to_datetime(df['end'], format='mixed', errors='coerce')
+    df = df.dropna(subset=['start_plot'])
 
-    # Calculate duration in days for hover info
-    df['duration_days'] = (df['end_plot'] - df['start']).dt.days
+    # Handle ongoing missions
+    tz_cn = timezone("Asia/Shanghai")
+    now_cn = datetime.now(tz_cn).replace(tzinfo=None)
+    df['end_plot'] = df['end_plot'].fillna(now_cn)
+
+    # Calculate duration
+    df['duration_days'] = (df['end_plot'] - df['start_plot']).dt.days
 
     # 3. Create Plotly Timeline
-    # Define specific colors to match your previous chart
-    color_map = {
-        '载人': '#e74c3c',   # Red
-        '舱段': '#3498db',   # Blue
-        '货运': '#f1c40f'    # Yellow
-    }
+    color_map = {'载人': '#e74c3c', '货运': '#3498db', '舱段': '#f1c40f'}
 
     fig = px.timeline(
         df, 
-        x_start="start", 
+        x_start="start_plot", 
         x_end="end_plot", 
         y="name",
         color="type",
         title="中国空间站任务交互进度图 (China Space Station Interactive Timeline)",
         color_discrete_map=color_map,
-        hover_name="name",
-        # Custom data to show in hover tooltip
-        custom_data=["type", "start", "end_str", "duration_days"]
+        custom_data=["type", "start_str", "end_str", "duration_days"]
     )
 
-    # 4. Customize Interactivity and layout
-    fig.update_yaxes(
-        autorange="reversed", # Ensure first mission is at the top
-        title=None            # Hide Y-axis label "name"
-    )
-    fig.update_xaxes(
-        title="日期 (Date)",
-        rangeslider_visible=True # Adds a mini-timeline slider at the bottom
-    )
+    fig.update_yaxes(autorange="reversed", title=None)
+    fig.update_xaxes(title="日期 (Date)", rangeslider_visible=True, tickformat="%Y-%m-%d")
 
-    # Customize the hover tooltip to be readable
     fig.update_traces(
-        hovertemplate="<b>%{y}</b><br>" +
-                      "类型 (Type): %{customdata[0]}<br>" +
-                      "发射 (Start): %{customdata[1]|%Y-%m-%d}<br>" +
-                      "结束 (End): %{customdata[2]}<br>" +
-                      "时长 (Duration): %{customdata[3]} 天<extra></extra>"
+        hovertemplate="<b>%{y}</b><br>类型: %{customdata[0]}<br>发射: %{customdata[1]}<br>结束: %{customdata[2]}<br>时长: %{customdata[3]} 天<extra></extra>"
     )
 
-    # Set overall layout size and language font preference
     fig.update_layout(
-        height=max(600, len(df) * 40), # Dynamic height based on number of missions
+        height=max(600, len(df) * 40),
         font=dict(family="Microsoft YaHei, SimHei, sans-serif", size=14),
         hovermode="closest",
-        legend_title_text='任务类型 (Mission Type)'
+        legend_title_text='任务类型'
     )
 
-    # Add a 'Today' reference line
-    fig.add_vline(x=now.timestamp() * 1000, line_width=2, line_dash="dash", line_color="red")
+    # --- FIX IS HERE ---
+    # Convert 'now_cn' to milliseconds timestamp for Plotly
+    now_ts = pd.Timestamp(now_cn).timestamp() * 1000
+    fig.add_vline(x=now_ts, line_width=2, line_dash="dash", line_color="red", annotation_text="今天 (Today)")
 
-    # 5. Convert to HTML and render template
-    # full_html=False means it just gives us the <div>, not a whole <html> page
     chart_html = pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
-    
     return render_template("interactive_chart.html", chart_html=chart_html)
 
 # Route 2: The viewer page
@@ -188,7 +168,7 @@ def css_gantt_chart():
     fig_height = max(6, len(df) * 0.5)
     fig, ax = plt.subplots(figsize=(14, fig_height))
 
-    colors = {'载人': '#e74c3c', '货运': '#3498db', '舱段': '#f1c40f'}
+    colors = {'载人': '#e74c3c', '舱段': '#3498db', '货运': '#f1c40f'}
     default_c = '#95a5a6'
 
     for i, row in df.iterrows():
