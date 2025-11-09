@@ -50,45 +50,106 @@ def index():
     return render_template("index.html")
 
 # -------------------- Helpers --------------------
-def get_circular_photo(uid):
-    """Helper to create a circular base64 image on the fly for Plotly"""
-    # 1. Find the image path (similar logic to resolve_astronaut_photo)
+@app.route("/css-missions/docking")
+def css_docking_status():
+    conn = sqlite3.connect("astronauts.db")
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    tz_cn = timezone("Asia/Shanghai")
+    # --- CRITICAL FIX: Use slashes '/' to match your DB format ---
+    now_cn = datetime.now(tz_cn).strftime('%Y/%m/%d %H:%M:%S')
+    print(f"DEBUG: Server Time (CN): {now_cn}")
+
+    # 1. Fetch ongoing missions with CORRECTED date format comparison
+    sql = """
+        SELECT name, type, start, end
+        FROM missions 
+        WHERE start <= ? 
+          AND (end IS NULL OR end = '' OR end >= ?)
+        ORDER BY start DESC
+    """
+    cursor.execute(sql, (now_cn, now_cn))
+    ongoing_missions = cursor.fetchall()
+
+    print(f"DEBUG: Found {len(ongoing_missions)} ongoing missions:")
+    for m in ongoing_missions:
+        print(f" - {m['name']} ({m['type']}) Start: {m['start']} End: {m['end']}")
+
+    # --- DEBUG: Check if missing missions even EXIST in the future ---
+    # This will help us see if they are just missing from the DB entirely
+    cursor.execute("SELECT name, start FROM missions WHERE start > ? ORDER BY start ASC LIMIT 5", (now_cn,))
+    future_missions = cursor.fetchall()
+    if future_missions:
+        print("DEBUG: Future missions found in DB (not active yet):")
+        for m in future_missions:
+            print(f" - [FUTURE] {m['name']} starts on {m['start']}")
+    else:
+        print("DEBUG: No future missions found after today in DB.")
+    
+    conn.close()
+
+    # 2. Separate by type
+    manned = [m for m in ongoing_missions if m['type'] == '载人']
+    cargo = [m for m in ongoing_missions if m['type'] == '货运']
+
+    # 3. Initialize and Assign Ports
+    ports = {
+        "core": "天和核心舱 (Tianhe)",
+        "left": "梦天实验舱 (Mengtian)",
+        "right": "问天实验舱 (Wentian)",
+        "forward": None,
+        "nadir": None,
+        "aft": None
+    }
+
+    if len(manned) > 0: ports['forward'] = manned[0]
+    if len(manned) > 1: ports['nadir'] = manned[1]
+    if len(cargo) > 0: ports['aft'] = cargo[0]
+
+    return render_template("docking_diagram.html", ports=ports)
+
+def get_circular_photo(uid, active=False):
+    """
+    Helper to create a circular base64 image.
+    If active=True, draws a status ring around it.
+    """
     base_dir = os.path.join(app.root_path, "static", "images", "astronauts")
     jpg = os.path.join(base_dir, f"{uid}.jpg")
     png = os.path.join(base_dir, f"{uid}.png")
     
-    img_path = None
-    if os.path.exists(jpg):
-        img_path = jpg
-    elif os.path.exists(png):
-        img_path = png
-    else:
-        img_path = os.path.join(base_dir, "default.jpg")
+    img_path = jpg if os.path.exists(jpg) else (png if os.path.exists(png) else os.path.join(base_dir, "default.jpg"))
 
-    # 2. Use Pillow to crop it into a circle
     try:
         with Image.open(img_path) as img:
             img = img.convert("RGBA")
-            # Resize/crop to a perfect square first
             size = min(img.size)
             img = ImageOps.fit(img, (size, size), centering=(0.5, 0.5))
 
-            # Create the circular mask
+            # Create standard circular mask
             mask = Image.new('L', (size, size), 0)
             draw = ImageDraw.Draw(mask)
             draw.ellipse((0, 0, size, size), fill=255)
-
-            # Apply the mask to the image alpha channel
             img.putalpha(mask)
 
-            # 3. Save to memory as PNG and convert to base64
+            # --- NEW: Draw Active Ring if currently in orbit ---
+            if active:
+                draw_img = ImageDraw.Draw(img)
+                # Draw a thick, bright colored ring (e.g., Orbit Green or Alert Red)
+                # We draw it slightly inside the edge so it doesn't get clipped
+                ring_color = "#00ff00" # Bright green for 'Active'
+                ring_width = int(size * 0.08) # Dynamic width based on image size (8%)
+                
+                # Draw multiple circles for anti-aliased thicker look, or just one thick one
+                draw_img.ellipse((0, 0, size, size), outline=ring_color, width=ring_width)
+
             buffer = io.BytesIO()
             img.save(buffer, format="PNG")
             img_str = base64.b64encode(buffer.getvalue()).decode()
             return f"data:image/png;base64,{img_str}"
     except Exception as e:
         print(f"Error processing image for {uid}: {e}")
-        return "" # Return empty if failed
+        return ""
 
 @app.route("/astronauts/chart/cumulative")
 def astronaut_cumulative_chart():
@@ -96,7 +157,24 @@ def astronaut_cumulative_chart():
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    # 1. Fetch Data
+    # 1. Identify currently ACTIVE astronauts (UIDs)
+    # (Missions that started in the past, but have NO end date yet)
+    tz_cn = timezone("Asia/Shanghai")
+    now_cn = datetime.now(tz_cn).strftime('%Y/%m/%d %H:%M:%S')
+    
+    sql_active = """
+        SELECT DISTINCT mc.astronaut_uid
+        FROM missions m
+        JOIN mission_crew mc ON m.id = mc.mission_id
+        WHERE m.type = '载人' 
+          AND m.start <= ? 
+          AND (m.end IS NULL OR m.end = '' OR m.end >= ?)
+    """
+    cursor.execute(sql_active, (now_cn, now_cn))
+    # Create a set for fast lookups: {'jinghaipeng', 'zhu_yangzhu', ...}
+    active_uids = {row['astronaut_uid'] for row in cursor.fetchall()}
+
+    # 2. Fetch standard chart data
     sql = """
         SELECT a.name as astronaut, a.uid, m.name as mission, m.start, m.end
         FROM mission_crew mc
@@ -108,71 +186,69 @@ def astronaut_cumulative_chart():
     data = cursor.fetchall()
     conn.close()
 
-    if not data:
-        return "No mission data found."
+    if not data: return "No mission data found."
 
-    # 2. Process Data
+    # 3. Process Data
     df = pd.DataFrame([{k: row[k] for k in row.keys()} for row in data])
     df['start_dt'] = pd.to_datetime(df['start'], format='mixed', errors='coerce')
     df['end_dt'] = pd.to_datetime(df['end'], format='mixed', errors='coerce')
 
-    tz_cn = timezone("Asia/Shanghai")
-    now_cn = datetime.now(tz_cn).replace(tzinfo=None)
-    df['end_plot'] = df['end_dt'].fillna(now_cn)
+    now_dt = datetime.now(tz_cn).replace(tzinfo=None)
+    df['end_plot'] = df['end_dt'].fillna(now_dt)
     df['duration_days'] = (df['end_plot'] - df['start_dt']).dt.days
 
     total_durations = df.groupby('astronaut')['duration_days'].sum().sort_values(ascending=False)
     sorted_names = total_durations.index.tolist()
 
-    # --- KEY CHANGE IS HERE ---
-    # Use the new helper to get circular base64 images
+    # 4. Generate Photos with Active Status
     unique_astronauts = df[['astronaut', 'uid']].drop_duplicates()
-    photo_map = {row['astronaut']: get_circular_photo(row['uid']) for _, row in unique_astronauts.iterrows()}
-    # --------------------------
+    photo_map = {}
+    for _, row in unique_astronauts.iterrows():
+        # Check if this specific astronaut is in our active set
+        is_active = row['uid'] in active_uids
+        # Pass the True/False flag to the photo generator
+        photo_map[row['astronaut']] = get_circular_photo(row['uid'], active=is_active)
 
-    # 4. Create Chart
+    # 5. Create Chart
     fig = px.bar(
         df,
         x="astronaut",
         y="duration_days",
         color="mission",
-        title="中国航天员累计在轨时长 (Cumulative Time in Space)",
+        title="中国航天员累计在轨时长",
         labels={"astronaut": "", "duration_days": "在轨时长 (天)", "mission": "执行任务"},
         color_discrete_sequence=px.colors.qualitative.G10,
         custom_data=["mission"]
     )
 
-    # 5. Customize Layout
     fig.update_layout(
         xaxis={'categoryorder':'array', 'categoryarray': sorted_names, 'tickfont': {'size': 14}},
         font=dict(family="Microsoft YaHei, SimHei, sans-serif", size=14),
         hovermode="closest",
         legend_traceorder="reversed",
         height=800,
-        margin=dict(b=130) # Keep this margin high for the photos
+        margin=dict(b=130),
+        # Add a subtitle to the legend or chart to explain the green ring
+        annotations=[dict(
+            x=0, y=-0.23, xref='paper', yref='paper',
+            text="🟢 绿色光环表示当前在轨",
+            showarrow=False, font=dict(size=12, color="#555")
+        )]
     )
 
-    # Loop and add circular photos
     for name in sorted_names:
         fig.add_layout_image(
             source=photo_map[name],
-            x=name,
-            y=-0.08,
-            xref="x",
-            yref="paper",
-            sizex=0.8,
-            sizey=0.13,
-            xanchor="center",
-            yanchor="top",
-            layer="above"
+            x=name, y=-0.08, xref="x", yref="paper",
+            sizex=0.8, sizey=0.13,
+            xanchor="center", yanchor="top", layer="above"
         )
 
-    fig.update_traces(
-        hovertemplate="<b>%{x}</b><br>任务: %{customdata[0]}<br>时长: %{y} 天<extra></extra>"
-    )
+    fig.update_traces(hovertemplate="<b>%{x}</b><br>任务: %{customdata[0]}<br>时长: %{y} 天<extra></extra>")
 
     chart_html = pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
     return render_template("interactive_chart.html", chart_html=chart_html, page_title="航天员累计时长")
+
 
 @app.route("/css-missions/interactive")
 def css_interactive_chart():
