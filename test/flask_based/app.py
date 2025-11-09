@@ -285,7 +285,7 @@ def css_interactive_chart():
     df['duration_days'] = (df['end_plot'] - df['start_plot']).dt.days
 
     # 3. Create Plotly Timeline
-    color_map = {'载人': '#e74c3c', '货运': '#3498db', '舱段': '#f1c40f'}
+    color_map = {'载人': '#e74c3c', '舱段': '#3498db', '货运': '#f1c40f'}
 
     fig = px.timeline(
         df, 
