@@ -133,65 +133,71 @@ def delete_astronaut(uid):
     return redirect(url_for('admin_astronaut_list'))
 
 # -------------------- Helpers --------------------
-
 def calculate_mission_duration(start_str, end_str):
-    # Default error/empty state
-    result = {"seconds": 0, "display": "N/A", "status": "unknown"}
+    # 1. Setup Beijing Timezone
+    tz_cn = 'Asia/Shanghai'
+    now_aware = pd.Timestamp.now(tz=tz_cn)
+    
+    result = {
+        "seconds": 0, 
+        "display": "N/A", 
+        "status": "unknown",
+        "end_date_used": end_str # Default to input
+    }
 
-    if not start_str or start_str == "0":
-         result["display"] = "未开始 (Not Started)"
+    if not start_str or str(start_str).strip() in ['', '0', 'None']:
+         result["display"] = "未开始"
          result["status"] = "future"
          return result
 
     try:
-        # 1. Clean up input formats
-        start_clean = str(start_str).replace('T', ' ').replace('/', '-')
-        start_dt = pd.to_datetime(start_clean).to_pydatetime()
-        
-        tz_cn = timezone("Asia/Shanghai")
-        if start_dt.tzinfo is None: start_dt = tz_cn.localize(start_dt)
-        now = datetime.now(tz_cn)
+        # 2. Clean and Force Start Date
+        start_clean = str(start_str).replace('T', ' ').replace('/', '-').strip()
+        start_dt = pd.to_datetime(start_clean, format='mixed').tz_localize(tz_cn)
 
-        if start_dt > now:
-             result["display"] = "未开始 (Future)"
+        if start_dt > now_aware:
+             result["display"] = "未开始"
              result["status"] = "future"
              return result
 
-        # 2. Parse End Date
+        # 3. Clean and Force End Date
         if end_str and str(end_str).strip() not in ['', '0', 'None', 'NaT']:
-            end_clean = str(end_str).replace('T', ' ').replace('/', '-')
-            end_dt = pd.to_datetime(end_clean).to_pydatetime()
-            if end_dt.tzinfo is None: end_dt = tz_cn.localize(end_dt)
+            end_clean = str(end_str).replace('T', ' ').replace('/', '-').strip()
+            end_dt = pd.to_datetime(end_clean, format='mixed').tz_localize(tz_cn)
             
-            if end_dt > now:
-                end_dt = now
+            if end_dt > now_aware:
+                # End date is in future -> still ongoing, use NOW
+                end_dt = now_aware
                 result["status"] = "ongoing"
             else:
+                # End date passed -> Completed
                 result["status"] = "completed"
         else:
-            end_dt = now
+            # No end date -> Ongoing, use NOW
+            end_dt = now_aware
             result["status"] = "ongoing"
 
-        # 3. Calculate Duration
+        # 4. Calculate Duration
         duration = end_dt - start_dt
-        total_seconds = duration.total_seconds()
-        days = duration.days
+        total_seconds = max(0, duration.total_seconds()) # Prevent negative
+        
+        days = int(duration.days)
         hours = int((total_seconds % 86400) // 3600)
         minutes = int((total_seconds % 3600) // 60)
 
-        if days > 0:
-            display = f"{days}天 {hours}小时"
-        elif hours > 0:
-            display = f"{hours}小时 {minutes}分钟"
-        else:
-            display = f"{int(total_seconds // 60)}分钟"
+        if days > 0: result["display"] = f"{days}天 {hours}小时"
+        elif hours > 0: result["display"] = f"{hours}小时 {minutes}分钟"
+        else: result["display"] = f"{int(total_seconds // 60)}分钟"
 
         result["seconds"] = total_seconds
-        result["display"] = display
+        # --- CRITICAL ADDITION: Return the exact end time used ---
+        # Format it nicely as a string for display
+        result["end_date_used"] = end_dt.strftime('%Y-%m-%d %H:%M:%S')
+        
         return result
 
     except Exception as e:
-        print(f"Duration Calc Error: {e}")
+        print(f"Duration Error: {e}")
         result["display"] = "计算错误"
         result["status"] = "error"
         return result
@@ -235,9 +241,9 @@ def get_circular_photo(uid, active=False):
         return ""
 
 # -------------------- Main Routes --------------------
-
 @app.route("/astronauts/")
 def chinese_astronauts():
+    # Get filter and sort parameters
     gender = request.args.get("gender")
     search = request.args.get("search")
     group = request.args.get("group")
@@ -249,12 +255,13 @@ def chinese_astronauts():
     cursor = conn.cursor()
 
     sql = """
-        SELECT a.*, m.name AS mission_name, m.mid, m.start, m.end
+        SELECT a.*, m.name AS mission_name, m.mid, m.start, m.end, mc.role
         FROM astronauts_cn a
         LEFT JOIN mission_crew mc ON a.uid = mc.astronaut_uid
         LEFT JOIN missions m ON mc.mission_id = m.id
         WHERE 1=1
     """
+    
     params = []
     if gender:
         sql += " AND a.gender = ?"
@@ -269,46 +276,74 @@ def chinese_astronauts():
     cursor.execute(sql, params)
     rows = cursor.fetchall()
 
+    # Group missions by astronaut
     astronauts_map = {}
     for row in rows:
         uid = row["uid"]
         if uid not in astronauts_map:
             astronauts_map[uid] = {
-                "uid": uid, "name": row["name"], "gender": row["gender"],
-                "DOB": row["DOB"], "group_id": row["group_id"],
-                "missions": [], "total_seconds": 0, "status":row["status"],
+                "uid": uid,
+                "name": row["name"],
+                "gender": row["gender"],
+                "DOB": row["DOB"],
+                "group_id": row["group_id"],
+                "missions": [],
+                "total_seconds": 0,
+                "status": row["status"],
                 "photo_url": resolve_astronaut_photo(uid),
             }
         
         if row["mid"]:
-            total_seconds, duration_display, status = calculate_mission_duration(row["start"], row["end"])
-            if status in ["completed", "ongoing"]:
-                astronauts_map[uid]["total_seconds"] += total_seconds
+            # --- UPDATED DURATION CALCULATION ---
+            # Use the new dictionary return format
+            duration_info = calculate_mission_duration(row["start"], row["end"])
+            
+            # Only accumulate completed/ongoing missions
+            if duration_info["status"] in ["completed", "ongoing"]:
+                astronauts_map[uid]["total_seconds"] += duration_info["seconds"]
+            
             astronauts_map[uid]["missions"].append({
-                "mid": row["mid"], "name": row["mission_name"],
-                "duration_display": duration_display, "status": status
+                "mid": row["mid"],
+                "name": row["mission_name"],
+                "duration_display": duration_info["display"],
+                "status": duration_info["status"],
             })
 
+    # Convert to list and format total display
     enhanced_astronauts = []
     for astronaut in astronauts_map.values():
         total_seconds = astronaut["total_seconds"]
+        
         if total_seconds > 0:
             days = int(total_seconds // 86400)
             hours = int((total_seconds % 86400) // 3600)
+            # Format: "100天 5小时"
             astronaut["total_mission_time"] = f"{days}天 {hours}小时"
         else:
             astronaut["total_mission_time"] = "0天"
+            
         enhanced_astronauts.append(astronaut)
 
+    # Sorting
     reverse = order == "desc"
-    if sort_by == "total": enhanced_astronauts.sort(key=lambda x: x["total_seconds"], reverse=reverse)
-    elif sort_by == "name": enhanced_astronauts.sort(key=lambda x: x["name"], reverse=reverse)
-    elif sort_by == "group": enhanced_astronauts.sort(key=lambda x: x["group_id"], reverse=reverse)
+    if sort_by == "total":
+        enhanced_astronauts.sort(key=lambda x: x["total_seconds"], reverse=reverse)
+    elif sort_by == "name":
+        enhanced_astronauts.sort(key=lambda x: x["name"], reverse=reverse)
+    elif sort_by == "group":
+        enhanced_astronauts.sort(key=lambda x: x["group_id"], reverse=reverse)
 
     conn.close()
-    return render_template("astronaut_cn.html", astronauts=enhanced_astronauts, 
-                         selected_gender=gender, search=search, selected_group=group, 
-                         sort_by=sort_by, order=order)
+
+    return render_template(
+        "astronaut_cn.html",
+        astronauts=enhanced_astronauts,
+        selected_gender=gender,
+        search=search,
+        selected_group=group,
+        sort_by=sort_by,
+        order=order,
+    )
 
 @app.route("/astronauts/<uid>")
 def astronaut_profile(uid):
@@ -373,7 +408,7 @@ def astronaut_profile(uid):
     return render_template("astronaut.html", astronaut=astronaut, past_missions=past_missions,
                          future_missions=future_missions, total_mission_time=total_display,
                          time_since_last_mission=time_since_last_display)
-
+    
 @app.route("/missions/")
 def mission_list():
     sort_by = request.args.get("sort_by", "start")
@@ -391,24 +426,31 @@ def mission_list():
 
     cursor.execute(query, params)
     missions = cursor.fetchall()
+
     mission_data = []
     for m in missions:
         cursor.execute("SELECT a.name, a.uid FROM mission_crew mc JOIN astronauts_cn a ON mc.astronaut_uid = a.uid WHERE mc.mission_id = ? ORDER BY mc.crew_order ASC", (m["id"],))
         crew = cursor.fetchall()
+        
+        # Calculate duration first
         duration_info = calculate_mission_duration(m["start"], m["end"])
+
         mission_data.append({
             "name": m["name"], "mid": m["mid"], "type": m["type"],
-            "start": m["start"], "end": m["end"] or "进行中",
-            "duration_display": duration_info["display"],
+            "start": m["start"], 
+            # --- USE THE SYNCED END DATE ---
+            "end": duration_info["end_date_used"], 
+            "duration_display": duration_info["display"], 
             "duration_seconds": duration_info["seconds"],
-            "status": duration_info["status"],
-            "crew": crew
+            "crew": crew, 
+            "status": duration_info["status"]
         })
 
     reverse = order == "desc"
     if sort_by == "duration": mission_data.sort(key=lambda m: m["duration_seconds"], reverse=reverse)
     elif sort_by in ("start", "end"):
-        mission_data.sort(key=lambda m: (m[sort_by] if m[sort_by] and m[sort_by] != "0" else "9999-12-31"), reverse=reverse)
+        # Use a default for sorting if end date is somehow still N/A
+        mission_data.sort(key=lambda m: (m[sort_by] if m[sort_by] and m[sort_by] != "N/A" else "9999-12-31"), reverse=reverse)
 
     conn.close()
     return render_template("missions.html", missions=mission_data, selected_type=mission_type,
@@ -466,62 +508,15 @@ def css_mission_list():
     return mission_list() # Re-use generic list but could filter if needed
 
 # -------------------- Charts & Visualizations --------------------
-
-@app.route("/css-missions/docking")
-def css_docking_status():
-    conn = sqlite3.connect("astronauts.db")
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    tz_cn = timezone("Asia/Shanghai")
-    now_cn = datetime.now(tz_cn).strftime('%Y-%m-%d %H:%M:%S')
-
-    # Fetch ONGOING missions (Standardized date format for comparison)
-    sql = """
-        SELECT name, type, start, end
-        FROM missions 
-        WHERE REPLACE(start, 'T', ' ') <= ? 
-          AND (end IS NULL OR end = '' OR REPLACE(end, 'T', ' ') >= ?)
-        ORDER BY start DESC
-    """
-    cursor.execute(sql, (now_cn, now_cn))
-    ongoing_missions = cursor.fetchall()
-    conn.close()
-
-    manned = [m for m in ongoing_missions if m['type'] == '载人']
-    cargo = [m for m in ongoing_missions if m['type'] == '货运']
-
-    ports = {
-        "core": "天和核心舱 (Tianhe)", "left": "梦天实验舱 (Mengtian)", "right": "问天实验舱 (Wentian)",
-        "forward": None, "nadir": None, "aft": None
-    }
-
-    if len(manned) > 0: ports['forward'] = manned[0]
-    if len(manned) > 1: ports['nadir'] = manned[1]
-    if len(cargo) > 0: ports['aft'] = cargo[0]
-
-    return render_template("docking_diagram.html", ports=ports)
-
 @app.route("/astronauts/chart/cumulative")
 def astronaut_cumulative_chart():
     conn = sqlite3.connect("astronauts.db")
     conn.row_factory = sqlite3.Row
     cursor = conn.cursor()
 
-    tz_cn = timezone("Asia/Shanghai")
-    now_cn = datetime.now(tz_cn).strftime('%Y-%m-%d %H:%M:%S')
-    
-    # Identify active astronauts
-    sql_active = """
-        SELECT DISTINCT mc.astronaut_uid FROM missions m
-        JOIN mission_crew mc ON m.id = mc.mission_id
-        WHERE m.type = '载人' AND REPLACE(m.start,'T',' ') <= ? AND (m.end IS NULL OR m.end = '' OR REPLACE(m.end,'T',' ') >= ?)
-    """
-    cursor.execute(sql_active, (now_cn, now_cn))
-    active_uids = {row['astronaut_uid'] for row in cursor.fetchall()}
-
+    # 1. Fetch ALL mission data (we will filter in Python for accuracy)
     sql = """
-        SELECT a.name as astronaut, a.uid, m.name as mission, m.start, m.end
+        SELECT a.name as astronaut, a.uid, m.name as mission, m.type, m.start, m.end
         FROM mission_crew mc
         JOIN astronauts_cn a ON mc.astronaut_uid = a.uid
         JOIN missions m ON mc.mission_id = m.id
@@ -533,39 +528,97 @@ def astronaut_cumulative_chart():
 
     if not data: return "No data found."
 
+    # 2. Process into DataFrame
     df = pd.DataFrame([{k: row[k] for k in row.keys()} for row in data])
-    df['start'] = df['start'].astype(str).str.replace('T', ' ').str.replace('/', '-')
-    df['end'] = df['end'].astype(str).str.replace('T', ' ').str.replace('/', '-')
     
-    df['start_dt'] = pd.to_datetime(df['start'], errors='coerce')
-    df['end_dt'] = pd.to_datetime(df['end'], errors='coerce')
-    
+    # Clean date strings: replace 'T' with space, replace '/' with '-' to standardize
+    df['start_clean'] = df['start'].astype(str).str.replace('T', ' ').str.replace('/', '-').str.strip()
+    df['end_clean'] = df['end'].astype(str).str.replace('T', ' ').str.replace('/', '-').str.strip()
+
+    # Force "None", "nan", "NULL" strings to be actual empty values
+    invalid_strings = ['None', 'none', 'NULL', 'null', 'nan', '']
+    df.loc[df['end_clean'].isin(invalid_strings), 'end_clean'] = None
+
+    # --- CRITICAL FIX: Add format='mixed' here ---
+    df['start_dt'] = pd.to_datetime(df['start_clean'], format='mixed', errors='coerce')
+    df['end_dt'] = pd.to_datetime(df['end_clean'], format='mixed', errors='coerce')
+    # --------------------------------------------
+
+    # Define "Now" (Naive, matching the naive dates from DB)
+    tz_cn = timezone("Asia/Shanghai")
     now_dt = datetime.now(tz_cn).replace(tzinfo=None)
+
+    # --- CRITICAL FIX 1: Filter out FUTURE missions ---
+    # Missions that haven't started yet should not have duration calculated
+    df = df[df['start_dt'] <= now_dt].copy()
+
+    # --- CRITICAL FIX 2: Robust ACTIVE Status Check ---
+    # Active = Manned mission + Start is in past + (End is unknown OR End is in future)
+    active_mask = (
+        (df['type'] == '载人') & 
+        (df['start_dt'] <= now_dt) & 
+        ((df['end_dt'].isna()) | (df['end_dt'] >= now_dt))
+    )
+    # Get set of currently active astronaut UIDs based on this robust check
+    active_uids = set(df[active_mask]['uid'].unique())
+
+    # 3. Calculate Durations
+    # For ongoing missions, use 'now_dt' as the end time for plotting
     df['end_plot'] = df['end_dt'].fillna(now_dt)
+    # Ensure we don't have negative durations due to slight clock mismatches
+    df['end_plot'] = df[['end_plot', 'start_dt']].max(axis=1)
+    
     df['duration_days'] = (df['end_plot'] - df['start_dt']).dt.days
 
+    # 4. Aggregate and Sort
     total_durations = df.groupby('astronaut')['duration_days'].sum().sort_values(ascending=False)
     sorted_names = total_durations.index.tolist()
 
+    # 5. Generate Photo Map with Active Rings
     photo_map = {}
+    # Use drop_duplicates to only process each astronaut once
     for _, row in df[['astronaut', 'uid']].drop_duplicates().iterrows():
-        photo_map[row['astronaut']] = get_circular_photo(row['uid'], active=(row['uid'] in active_uids))
+        is_active = row['uid'] in active_uids
+        photo_map[row['astronaut']] = get_circular_photo(row['uid'], active=is_active)
 
-    fig = px.bar(df, x="astronaut", y="duration_days", color="mission",
-                 title="中国航天员累计在轨时长",
-                 labels={"astronaut": "", "duration_days": "在轨时长 (天)", "mission": "执行任务"},
-                 color_discrete_sequence=px.colors.qualitative.G10, custom_data=["mission"])
+    # 6. Create Chart
+    fig = px.bar(
+        df, 
+        x="astronaut", 
+        y="duration_days", 
+        color="mission",
+        title="中国航天员累计在轨时长 (Cumulative Time in Space)",
+        labels={"astronaut": "", "duration_days": "在轨时长 (天)", "mission": "执行任务"},
+        color_discrete_sequence=px.colors.qualitative.G10,
+        custom_data=["mission"]
+    )
 
-    fig.update_layout(xaxis={'categoryorder':'array', 'categoryarray': sorted_names, 'tickfont': {'size': 14}},
-                      font=dict(family="Microsoft YaHei, SimHei, sans-serif", size=14),
-                      hovermode="closest", legend_traceorder="reversed", height=800, margin=dict(b=130))
+    fig.update_layout(
+        xaxis={'categoryorder':'array', 'categoryarray': sorted_names, 'tickfont': {'size': 14}},
+        font=dict(family="Microsoft YaHei, SimHei, sans-serif", size=14),
+        hovermode="closest",
+        legend_traceorder="reversed",
+        height=800,
+        margin=dict(b=130),
+        annotations=[dict(
+            x=0, y=-0.23, xref='paper', yref='paper',
+            text="🟢 绿色光环表示当前在轨 (Green ring = Currently in orbit)",
+            showarrow=False, font=dict(size=12, color="#555")
+        )]
+    )
 
     for name in sorted_names:
-        fig.add_layout_image(source=photo_map[name], x=name, y=-0.08, xref="x", yref="paper",
-                             sizex=0.8, sizey=0.13, xanchor="center", yanchor="top", layer="above")
+        fig.add_layout_image(
+            source=photo_map[name],
+            x=name, y=-0.08, xref="x", yref="paper",
+            sizex=0.8, sizey=0.13,
+            xanchor="center", yanchor="top", layer="above"
+        )
 
     fig.update_traces(hovertemplate="<b>%{x}</b><br>任务: %{customdata[0]}<br>时长: %{y} 天<extra></extra>")
-    return render_template("interactive_chart.html", chart_html=pio.to_html(fig, full_html=False, include_plotlyjs='cdn'), page_title="航天员累计时长")
+    
+    chart_html = pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
+    return render_template("interactive_chart.html", chart_html=chart_html, page_title="航天员累计时长")
 
 @app.route("/css-missions/interactive")
 def css_interactive_chart():

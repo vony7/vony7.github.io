@@ -34,7 +34,7 @@
       margin-bottom: 20px;
       border-radius: 5px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-  . }
+    }
     .filter-group {
       margin-bottom: 15px;
       display: flex;
@@ -125,15 +125,28 @@
     .col-status { width: 8%; }
     .col-missions { width: 25%; }
     .col-total { width: 14%; }
+    
+    /* --- NEW BUTTON STYLES --- */
+    .btn {
+        padding: 10px 20px; color: white; text-decoration: none; border-radius: 5px; 
+        display: inline-block; border: none; cursor: pointer; transition: opacity 0.2s;
+    }
+    .btn:hover { opacity: 0.9; }
+    .btn-chart { background-color: #9b59b6; }
+    .btn-admin { background-color: #2c3e50; }
   </style>
 
   <div class="container" style="max-width: 1200px; margin: 0 auto;">
     <h1>中国航天员 (Chinese Astronauts)</h1>
-<div style="margin: 20px 0;">
-    <a href="/astronauts/chart/cumulative" class="btn-primary" style="background-color: #9b59b6; padding: 10px 20px; color: white; text-decoration: none; border-radius: 5px; display: inline-block;">
-        📊 查看累计时长排名 (View Cumulative Time Ranking)
-    </a>
-</div>
+
+    <div style="margin: 20px 0; display: flex; gap: 10px;">
+        <a href="{{ url_for('astronaut_cumulative_chart') }}" class="btn btn-chart">
+            📊 查看累计时长排名 (Cumulative Time Chart)
+        </a>
+        <a href="{{ url_for('admin_astronaut_list') }}" class="btn btn-admin">
+            🔧 管理航天员 (Admin)
+        </a>
+    </div>
 
     <div class="filter-section">
             <form method="get" action="{{ url_for('chinese_astronauts') }}">
@@ -167,8 +180,8 @@
         </div>
 
         <div class="filter-group">
-          <button type="submit">筛选</button>
-          <a href="{{ url_for('chinese_astronauts') }}" style="margin-left: 10px;">重置</a>
+          <button type="submit" class="btn" style="background-color: #800020; padding: 8px 12px;">筛选</button>
+          <a href="{{ url_for('chinese_astronauts') }}" style="margin-left: 10px; color: #800020;">重置</a>
         </div>
       </form>
     </div>
@@ -178,7 +191,7 @@
         <tr>
           <th class="col-name">
             <a href="{{ url_for('chinese_astronauts', gender=selected_gender, search=search, group=selected_group, sort_by='name', order='asc' if not (sort_by == 'name' and order == 'asc') else 'desc') }}"
-              style="color: white; text-decoration: none;">
+               style="color: white; text-decoration: none;">
               姓名
               {% if sort_by == 'name' %}
                 <span class="sort-arrow">{% if order == 'asc' %}↑{% else %}↓{% endif %}</span>
@@ -191,7 +204,7 @@
           <th class="col-dob">出生日期</th>
           <th class="col-group">
             <a href="{{ url_for('chinese_astronauts', gender=selected_gender, search=search, group=selected_group, sort_by='group', order='asc' if not (sort_by == 'group' and order == 'asc') else 'desc') }}"
-              style="color: white; text-decoration: none;">
+               style="color: white; text-decoration: none;">
               批次
               {% if sort_by == 'group' %}
                 <span class="sort-arrow">{% if order == 'asc' %}↑{% else %}↓{% endif %}</span>
@@ -202,7 +215,7 @@
            <th class="col-missions">执行任务</th>
           <th class="col-total">
             <a href="{{ url_for('chinese_astronauts', gender=selected_gender, search=search, group=selected_group, sort_by='total', order='asc' if not (sort_by == 'total' and order == 'asc') else 'desc') }}"
-              style="color: white; text-decoration: none;">
+               style="color: white; text-decoration: none;">
               太空总时长
               {% if sort_by == 'total' %}
                 <span class="sort-arrow">{% if order == 'asc' %}↑{% else %}↓{% endif %}</span>
@@ -215,10 +228,12 @@
                 {% if astronauts %}
           {% for astro in astronauts %}
           <tr>
-            <td><a href="{{ url_for('astronaut_profile', uid=astro.uid) }}">{{ astro.name }}</a></td>
+            <td><a href="{{ url_for('astronaut_profile', uid=astro.uid) }}" style="font-weight: bold; color: #800020; text-decoration: none;">{{ astro.name }}</a></td>
             <td>
-              <img class="astro-thumb" src="{{ astro.photo_url }}" alt="{{ astro.name }} 照片"
-                  onerror="this.src='/static/images/astronauts/default.jpg';">
+              <a href="{{ url_for('astronaut_profile', uid=astro.uid) }}">
+                  <img class="astro-thumb" src="{{ astro.photo_url }}" alt="{{ astro.name }} 照片"
+                       onerror="this.src='/static/images/astronauts/default.jpg';">
+              </a>
             </td>
 
             <td>{{ astro.uid }}</td>
@@ -234,18 +249,17 @@
               {% if astro.missions %}
                 {% for mission in astro.missions %}
                <div class="mission-item">
-                  <a href="{{ url_for('mission_detail', mid=mission.mid) }}">{{ mission.name }}</a>
-                  ({{ mission.duration_display }})
+                  <a href="{{ url_for('mission_detail', mid=mission.mid) }}" style="text-decoration: none; color: #0d47a1;">{{ mission.name }}</a>
                   <span class="mission-status status-{{ mission.status }}">
-                    {% if mission.status == 'completed' %}已完成
-                    {% elif mission.status == 'ongoing' %}进行中
-                    {% elif mission.status == 'future' %}计划中
+                    {% if mission.status == 'completed' %}
+                    {% elif mission.status == 'ongoing' %}🔄
+                    {% elif mission.status == 'future' %}⏳
                     {% endif %}
                   </span>
-                </div>
+               </div>
                {% endfor %}
               {% else %}
-                
+                <span style="color: #ccc;">-</span>
               {% endif %}
             </td>
             <td class="total-time">
