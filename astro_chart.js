@@ -1,46 +1,49 @@
-// select crew missions from missions
+﻿// select crew missions
 let crew_missions = [];
 for (let i = 0; i < cms_missions.length; i++) {
     if (cms_missions[i].type == "crew") {
         crew_missions.push(cms_missions[i]);
     }
 }
-//console.log("crew_missions: ", crew_missions);
 
 class Astronaut {
-    constructor(_name,_uid) {
+    constructor(_name, _uid) {
         this.name = _name;
-        this.uid =_uid;
+        this.uid = _uid;
         this.missions = [];
         this.time = 0;
     }
     describe() {
         console.log('Astronaut: ', this.name);
     }
-    addMission(mission) {
+    addMission(mission, durationOverride) {
         this.missions.push(mission);
-        this.time += mission.duration;
+        this.time += (durationOverride !== undefined) ? durationOverride : mission.duration;
     }
 }
 
 class Mission {
-    constructor(_name, _start, _end, _crew) {
+    constructor(_name, _mid, _start, _end, _crew) {
         this.name = _name;
+        this.mid = _mid;
         this.start = Date.parse(_start);
         if (_end === "now") {
             this.end = Date.parse(new Date().toLocaleString("en-US", { timeZone: "Asia/Shanghai" }));
         } else {
             this.end = Date.parse(_end);
-        } bn
+        }
         this.duration = this.end - this.start;
         this.crews = _crew;
-        console.log("this.crews: ", this.crews);
+        this.crewDurations = {};
+        let overrides = returnOverrides[_mid] || {};
         for (let i = 0; i < _crew.length; i++) {
-            //find the astronaut object from crews
+            let uid = _crew[i];
+            let actualEnd = (overrides[uid] !== undefined) ? overrides[uid] : this.end;
+            let actualDuration = actualEnd - this.start;
+            this.crewDurations[uid] = actualDuration;
             for (let j = 0; j < crews.length; j++) {
-                if (crews[j].uid == _crew[i]) {
-                    console.log("found: ", crews[j].name);
-                    crews[j].addMission(this);
+                if (crews[j].uid == uid) {
+                    crews[j].addMission(this, actualDuration);
                 }
             }
         }
@@ -49,7 +52,7 @@ class Mission {
         console.log("Mission Name: ", this.name);
         console.log("Launch: ", this.start);
         console.log("Land: ", this.end);
-        console.log("Crews: ", this.crew);
+        console.log("Crews: ", this.crews);
     }
 }
 
@@ -57,14 +60,48 @@ class Mission {
 let crews = [];
 for (let i = 0; i < astronauts.length; i++) {
     let astro = astronauts[i];
-    let new_astro = new Astronaut(astro.name,astro.uid);
+    let new_astro = new Astronaut(astro.name, astro.uid);
     crews.push(new_astro);
 }
 
+// Build returnOverrides: { launchMissionMid: { uid: returnTimestamp } }
+// For each mission with return_crew, find the most recent launch mission for each uid
+let returnOverrides = {};
+for (let i = 0; i < crew_missions.length; i++) {
+    let rm = crew_missions[i];
+    if (!rm.return_crew || rm.return_crew.length === 0) continue;
+    let returnEndTime = rm.end === "now"
+        ? Date.parse(new Date().toLocaleString("en-US", { timeZone: "Asia/Shanghai" }))
+        : Date.parse(rm.end);
+    let returnStartTime = Date.parse(rm.start);
+    for (let k = 0; k < rm.return_crew.length; k++) {
+        let uid = rm.return_crew[k];
+        // find the most recent launch mission for this uid before this return mission
+        let bestLaunch = null;
+        let bestLaunchTime = -Infinity;
+        for (let j = 0; j < crew_missions.length; j++) {
+            let lm = crew_missions[j];
+            let lmStart = Date.parse(lm.start);
+            if (lm.crew && lm.crew.includes(uid) && lmStart < returnStartTime && lmStart > bestLaunchTime) {
+                bestLaunch = lm;
+                bestLaunchTime = lmStart;
+            }
+        }
+        if (bestLaunch) {
+            if (!returnOverrides[bestLaunch.mid]) returnOverrides[bestLaunch.mid] = {};
+            returnOverrides[bestLaunch.mid][uid] = returnEndTime;
+        }
+    }
+}
+console.log("returnOverrides:", returnOverrides);
+
 let missions = [];
 for (let i = 0; i < crew_missions.length; i++) {
-    szm = new Mission(crew_missions[i].name, crew_missions[i].start, crew_missions[i].end, crew_missions[i].crew);
-    missions.push(szm);
+    let m = crew_missions[i];
+    if (m.crew.length > 0) {
+        szm = new Mission(m.name, m.mid, m.start, m.end, m.crew);
+        missions.push(szm);
+    }
 }
 
 console.log("missions: ", missions);
@@ -74,90 +111,76 @@ function generateColorMap(numColors) {
     const colorMap = [];
     for (let i = 0; i < numColors; i++) {
         const hue = (i / numColors) * 360;
-        const color = `hsl(${hue}, 50%, 40%)`; // You can adjust the saturation and lightness as needed
+        const color = `hsl(${hue}, 50%, 40%)`;
         colorMap.push(color);
     }
     return colorMap;
 }
 
-const nummissions = crew_missions.length;
+const nummissions = missions.length;
 const colors = generateColorMap(nummissions);
 
 // data for stacked column chart
-for (let i = 0; i < nummissions; i++) { //missions
+for (let i = 0; i < nummissions; i++) {
     let mission = missions[i];
     let dataPonts = [];
-    for (let j = 0; j < crews.length; j++) { // crews
+    for (let j = 0; j < crews.length; j++) {
         let new_data = {
             y: 0,
             label: crews[j].name,
-            color: colors[i], // Assign a color from the colormap
+            color: colors[i],
         };
         dataPonts.push(new_data);
     }
-    
-    // for each crew in mission[i].crew, find the index in crews
+
     for (let k = 0; k < mission.crews.length; k++) {
-        let crew = mission.crews[k];
-        //let index = crews.indexOf(crew);
+        let crewUid = mission.crews[k];
         let index2 = 0;
         for (let l = 0; l < crews.length; l++) {
-            //console.log("crews[l].name:", crews[l].name);
-            if (crew == crews[l].uid) {
+            if (crewUid == crews[l].uid) {
                 index2 = l;
                 break;
             }
         }
-        //console.log("datapoints:", dataPonts[index2]);
-        ////console.log("index:", index2);
-        val = (mission.duration / 24 / 3600 / 1000).toFixed(2);
-        ////console.log("mission.duration:", mission);
-        ////console.log("val:", val);
-        ////console.log("dp",{y:val*1,label:crew.name})
-        dataPonts[index2] = { y: val * 1, label: crew.name }; // *1 to convert string to number
+        let crewDuration = mission.crewDurations[crewUid] || mission.duration;
+        val = (crewDuration / 24 / 3600 / 1000).toFixed(2);
+        dataPonts[index2] = { y: val * 1, label: crews[index2].name };
     }
-    
-    // prepare dataseries for each mission
+
     dataSeries = {
         type: "stackedColumn",
         name: mission.name,
         showInLegend: "true",
         axisYType: "secondary",
         dataPoints: dataPonts,
-        color: colors[i], // Assign a color from the colormap
+        color: colors[i],
     };
-    // if last mission, add indexLabel: "#total", indexLabelPlacement: "outside",
-    if (i == crew_missions.length - 1) {
+    if (i == nummissions - 1) {
         dataSeries.indexLabel = "#total";
         dataSeries.indexLabelPlacement = "outside";
-        // indexlabel font color
         dataSeries.indexLabelFontColor = "#ffffff";
-        // indexlabel font size
         dataSeries.indexLabelFontSize = 12;
     }
     data.push(dataSeries);
 }
-//console.log("data:", data);
 
 let maxDuration = 0;
-for (let i=0;i<crews.length;i++){
-    if (crews[i].time > maxDuration){
+for (let i = 0; i < crews.length; i++) {
+    if (crews[i].time > maxDuration) {
         maxDuration = crews[i].time;
     }
 }
-maxDuration=maxDuration/24/3600/1000+10;
+maxDuration = maxDuration / 24 / 3600 / 1000 + 10;
 console.log("maxDuration:", maxDuration);
 
 var options = {
     animationEnabled: true,
-    //theme: "light3",
     backgroundColor: "#101312",
     title: {
         text: "中国航天员任务时间",
         fontsize: 12,
         fontColor: "#ffffff",
     },
-
     axisX: {
         title: "",
         interval: 1,
@@ -177,10 +200,8 @@ var options = {
         cornerRadius: 5,
         fontSize: 12,
         contentFormatter: function (e) {
-            ////console.log(e);
             var content = " ";
             var total = 0;
-            // include the name of the crew
             content += e.entries[0].dataPoint.label + "<br>";
             for (var i = 0; i < e.entries.length; i++) {
                 if (e.entries[i].dataPoint.y != 0) {
@@ -188,7 +209,7 @@ var options = {
                     total += e.entries[i].dataPoint.y;
                 }
             }
-            content += "总计: " + total + "天";
+            content += "总计: " + total.toFixed(2) + "天";
             return content;
         }
     },
@@ -201,14 +222,15 @@ var options = {
     data: data
 };
 $("#chartContainer").CanvasJSChart(options);
-// total number of astronauts
+
+// stats
 tot_astro = astronauts.length;
-// total number of crew missions
-tot_crew_missions = crew_missions.length;
-// total number of astroauts flown to space
+tot_crew_missions = cms_missions.filter(m => m.type == "crew").length;
 tot_astro_flown = 0;
-for (let i =0;i<crew_missions.length;i++){
-    tot_astro_flown += crew_missions[i].crew.length;
+for (let i = 0; i < crew_missions.length; i++) {
+    if (crew_missions[i].type == "crew") {
+        tot_astro_flown += crew_missions[i].crew.length;
+    }
 }
 console.log("tot_astro:", tot_astro);
 console.log("tot_crew_missions:", tot_crew_missions);
@@ -216,23 +238,23 @@ console.log("tot_astro_flown:", tot_astro_flown);
 document.write("<p> 入轨总人次数: " + tot_astro_flown + "</p>");
 document.write("<p> 入轨航天员总数: " + tot_astro + "</p>");
 document.write("<p> 载人飞行任务总数: " + tot_crew_missions + "</p>");
+
 // currently in space
 let in_space = [];
-// crew missions, end is "now"
 for (let i = 0; i < crew_missions.length; i++) {
     if (crew_missions[i].end == "now") {
         in_space.push(crew_missions[i]);
     }
 }
 console.log("in_space:", in_space);
-// current status,
-//go through each in_space mission, find the crew, find astronaut name
 let in_space_astronauts = [];
 for (let i = 0; i < in_space.length; i++) {
     document.write("<p> 当前在轨任务: " + in_space[i].name + "</p>");
-    for (let j = 0; j < in_space[i].crew.length; j++) {
+    let allCrew = [...(in_space[i].crew || []), ...(in_space[i].return_crew || [])];
+    allCrew = [...new Set(allCrew)];
+    for (let j = 0; j < allCrew.length; j++) {
         for (let k = 0; k < astronauts.length; k++) {
-            if (in_space[i].crew[j] == astronauts[k].uid) {
+            if (allCrew[j] == astronauts[k].uid) {
                 in_space_astronauts.push(astronauts[k].name);
             }
         }

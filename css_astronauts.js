@@ -1,4 +1,4 @@
-var astronauts = [
+﻿var astronauts = [
   {
     name: "杨利伟",
     uid: "ylw",
@@ -168,17 +168,45 @@ var astronauts = [
     group: "3"
   },
   {
-    name:"陈中瑞",
-    uid:"czr",
-    gender:"m",
-    DOB:"1984/10/15",
-    group:"3"
+    name: "陈中瑞",
+    uid: "czr",
+    gender: "m",
+    DOB: "1984/10/15",
+    group: "3"
   },
   {
-    name:"王杰",
-    uid:"wj",
-    gender:"m",
-    DOB:"1989/09/15",
-    group:"3"
+    name: "王杰",
+    uid: "wj",
+    gender: "m",
+    DOB: "1989/09/15",
+    group: "3"
+  },
+  {
+    name: "武飞",
+    uid: "wf",
+    gender: "m",
+    DOB: "1993/10/15",
+    group: "3"
+  },
+  {
+    name: "张红章",
+    uid: "zhz",
+    gender: "m",
+    DOB: "1986/04/15",
+    group: "3"
+  },
+  {
+    name: "张志远",
+    uid: "zzy",
+    gender: "m",
+    DOB: "1986/06/15",
+    group: "3"
+  },
+  {
+    name: "黎家盈",
+    uid: "ljy",
+    gender: "m",
+    DOB: "1982/11/15",
+    group: "4"
   }
 ]

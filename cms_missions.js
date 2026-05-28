@@ -1,4 +1,4 @@
-var cms_missions = [
+﻿var cms_missions = [
     {
       name: "神舟五号",
       mid: "sz5",
@@ -196,7 +196,50 @@ var cms_missions = [
       mid: "sz20",
       type: "crew",
       start: "2025-04-24 17:17:00",
+      end: "2026-01-19 09:34:00",
+      crew: ["cd","czr","wj"],
+      return_crew: []
+    },
+    {
+      name: "天舟九号",
+      mid: "tz-9",
+      type: "cargo",
+      start: "2025-07-15 05:34:23",
+      end: "2026-05-07 07:49:00",
+      crew: ["NA"]
+    },    
+    {
+      name: "神舟二十一号",
+      mid: "sz21",
+      type: "crew",
+      start: "2025-10-31 23:44:46",
+      end: "2025-11-14 11:14:00",
+      crew: ["zl","wf","zhz"],
+      return_crew: ["cd","czr","wj"]
+    },
+    {
+      name: "神舟二十二号",
+      mid: "sz22",
+      type: "crew",
+      start: "2025-11-25 04:11:45",
       end: "now",
-      crew: ["cd","czr","wj"]
-    }
+      crew: [],
+      return_crew: ["zl","wf","zhz"]
+    },
+    {
+      name: "天舟十号",
+      mid: "tz-10",
+      type: "cargo",
+      start: "2026-05-11 08:13:00",
+      end: "now",
+      crew: ["NA"]
+    },    
+    {
+      name: "神舟二十三号",
+      mid: "sz23",
+      type: "crew",
+      start: "2026-05-24 23:08:39",
+      end: "now",
+      crew: ["zyz","zzy","ljy"]
+    },
 ]

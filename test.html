@@ -1,44 +1,21 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>距离上一次任务时间</title>
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
-    <!-- Add Bootstrap CSS here -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css">
     <style>
-      body {
-        background-color: black; /* Set the background color to black */
-        color: white; /* Make text color white for visibility on black background */
-    }
-      .img-container {
-          text-align: center;
-      }
-
-      .topnav {
-          overflow: hidden;
-          background-color: #333;
-      }
-
+      body { background-color: black; color: white; }
+      .img-container { text-align: center; }
+      .topnav { overflow: hidden; background-color: #333; }
       .topnav a {
-          float: left;
-          color: #f2f2f2;
-          text-align: center;
-          padding: 14px 16px;
-          text-decoration: none;
-          font-size: 17px;
+          float: left; color: #f2f2f2; text-align: center;
+          padding: 14px 16px; text-decoration: none; font-size: 17px;
       }
-
-      .topnav a:hover {
-          background-color: #ddd;
-          color: black;
-      }
-
-      .topnav a.active {
-          background-color: #101312;
-          color: white;
-      }
+      .topnav a:hover { background-color: #ddd; color: black; }
+      .topnav a.active { background-color: #101312; color: white; }
     </style>
 </head>
 <body>
@@ -50,194 +27,94 @@
     <a href="cmse2030.html">载人登月</a>
     <a href="tianwen1.html">天问一号</a>
   </div>
-    <h2>航天员距离上一次任务时间</h2>
-    <div style="text-align: center; margin-top: 20px; margin-bottom:20px">
-      <a href="astronauts.html" class="btn btn-primary">航天员</a>
+
+  <h2>航天员距离上一次任务时间</h2>
+  <div style="text-align: center; margin-top: 20px; margin-bottom:20px">
+    <a href="astronauts.html" class="btn btn-primary">航天员</a>
   </div>
-    <div id="bar-chart" style="width: 100%; height: 600px;"></div>
-    <script>
-        // Class Definitions
-        class Astronaut {
-            constructor(_name, _uid) {
-                this.name = _name;
-                this.uid = _uid;
-                this.missions = [];
-                this.time = 0; // Time spent in space in milliseconds
-            }
+  <div id="bar-chart" style="width: 100%; height: 600px;"></div>
 
-            addMission(mission) {
-                this.missions.push(mission);
-                this.time += mission.duration; // Add mission duration to the total time
-            }
+  <script src="./css_astronauts.js"></script>
+  <script src="./cms_missions.js"></script>
+  <script>
+    // Exclude retired group 1 astronauts
+    let activeAstronauts = astronauts.filter(a => a.group !== "1");
 
-            getLastMissionEndDate() {
-                if (this.missions.length > 0) {
-                    // Find the most recent mission's end date
-                    let lastMission = this.missions[this.missions.length - 1];
-                    return lastMission.end;
-                }
-                return null; // No missions
-            }
+    // Track each astronaut's last return-to-Earth date
+    let crewRecords = activeAstronauts.map(a => ({
+        name: a.name,
+        uid:  a.uid,
+        lastEnd:   null,
+        isInSpace: false
+    }));
 
-            timeSinceLastMission() {
-                let lastMissionEndDate = this.getLastMissionEndDate();
-                if (lastMissionEndDate === null) {
-                    return "No mission completed";
-                }
+    let crewMissions = cms_missions.filter(m => m.type === "crew");
 
-                // If astronaut is currently in space, return 0
-                const now = Date.now();
-                if (lastMissionEndDate > now) {
-                    return 0; // Currently in space
-                }
+    // Process missions in chronological order
+    // Both crew (launch) and return_crew (landing) update the astronaut's last mission end
+    for (let i = 0; i < crewMissions.length; i++) {
+        let m = crewMissions[i];
+        let isOngoing = (m.end === "now");
+        let endTime   = isOngoing ? null : Date.parse(m.end);
 
-                // Calculate time difference in days
-                const millisecondsPerDay = 1000 * 60 * 60 * 24;
-                const timeDiffInDays = (now - lastMissionEndDate) / millisecondsPerDay;
-                return timeDiffInDays.toFixed(2); // Convert to days and round
-            }
-        }
-
-        class Mission {
-            constructor(_name, _start, _end, _crew) {
-                this.name = _name;
-                this.start = Date.parse(_start);
-                if (_end === "now") {
-                    this.end = Date.now(); // Ongoing mission
-                } else {
-                    this.end = Date.parse(_end);
-                }
-                this.duration = this.end - this.start; // Calculate mission duration
-                this.crews = _crew;
-
-                // Assign this mission to the corresponding astronauts
-                for (let i = 0; i < _crew.length; i++) {
-                    let crew_uid = _crew[i];
-                    for (let j = 0; j < crews.length; j++) {
-                        if (crews[j].uid === crew_uid) {
-                            crews[j].addMission(this); // Assign mission to the astronaut
-                        }
-                    }
+        let uidsToUpdate = [...(m.crew || []), ...(m.return_crew || [])];
+        for (let k = 0; k < uidsToUpdate.length; k++) {
+            for (let j = 0; j < crewRecords.length; j++) {
+                if (crewRecords[j].uid === uidsToUpdate[k]) {
+                    crewRecords[j].lastEnd   = endTime;
+                    crewRecords[j].isInSpace = isOngoing;
                 }
             }
         }
+    }
 
-        // Data for astronauts and missions
-        let astronauts = [
-            { name: "杨利伟", uid: "ylw" },
-            { name: "聂海胜", uid: "nhs" },
-            { name: "费俊龙", uid: "fjl" },
-            { name: "翟志刚", uid: "zzg" },
-            { name: "刘伯明", uid: "lbm" },
-            { name: "刘旺",  uid: "lw"},
-            { name: "刘洋",  uid: "ly" },
-            { name: "张晓光", uid: "zxg"},
-            { name: "王亚平", uid: "wyp" },
-            { name: "景海鹏", uid: "jhp" },
-            { name: "陈冬",  uid: "cd" },
-            { name: "汤洪波", uid: "thb" },
-            { name: "叶光富", uid: "ygf" },
-            { name: "蔡旭哲", uid: "cxz" },
-            { name: "邓清明", uid: "dqm" },
-            { name: "张陆", uid: "zl" },
-            { name: "朱杨柱", uid: "zyz" },
-            { name: "桂海潮", uid: "ghc" },
-            { name: "唐胜杰", uid: "tsj" },
-            { name: "江新林", uid: "jxl" },
-            { name: "李聪", uid: "lc" },
-            { name: "李广苏", uid: "lgs" },
-            { name: "宋令东", uid:"sld"},
-            { name: "王浩泽", uid:"whz"},
-            { name: "陈中瑞", uid:"czr"},
-            { name: "王杰", uid:"wj"}
-        ];
+    // Build chart data
+    let now = Date.now();
+    let chartData = crewRecords
+        .filter(c => c.lastEnd !== null || c.isInSpace)
+        .map(c => ({
+            name:      c.name,
+            timeSince: c.isInSpace ? 0 : (now - c.lastEnd) / (1000 * 60 * 60 * 24 * 365.25)
+        }))
+        .sort((a, b) => b.timeSince - a.timeSince);
 
-        let crew_missions = [
-            { name: "神舟五号", start: "2003-10-15", end: "2003-10-16", crew: ["ylw"] },
-            { name: "神舟六号", start: "2005-10-12", end: "2005-10-17", crew: ["nhs", "fjl"] },
-            { name: "神舟七号", start: "2008-09-25", end: "2008-09-28", crew: ["zzg", "lbm", "jhp"]},
-            { name: "神舟九号", start: "2012-06-16", end: "2012-06-29", crew: ["jhp","lw","ly"]},
-            { name: "神舟十号", start: "2013-06-11", end: "2013-06-26", crew: ["nhs","zxg","wyp"] },
-            { name: "神舟十一号", start: "2016-10-17", end: "2016-11-18", crew: ["jhp","cd"] },
-            { name: "神舟十二号", start: "2021-06-17", end: "2021-09-17", crew: ["nhs", "lbm", "thb"] },
-            { name: "神舟十三号", start: "2021-10-16", end: "2022-04-16", crew: ["zzg", "wyp", "ygf"] },
-            { name: "神舟十四号", start: "2022-06-05", end: "2022-12-04", crew: ["cd", "ly", "cxz"] },
-            { name: "神舟十五号", start: "2022-11-29", end: "2023-06-04", crew: ["fjl", "dqm", "zl"] },
-            { name: "神舟十六号", start: "2023-05-30", end: "2023-10-31", crew: ["jhp", "zyz", "ghc"] },
-            { name: "神舟十七号", start: "2023-10-26", end: "2024-04-30", crew: ["thb", "tsj", "jxl"] },
-            { name: "神舟十八号", start: "2024-04-25", end:"'2024-11-04'", crew:["ygf", "lc", "lgs"]}, 
-            { name: "神舟十九号", start: "2024-10-30", end:"2025-04-30", crew:["cxz","sld","whz"]},
-            { name: "神舟二十号", start: "2025-04-24", end:"now", crew: ["cd","czr","wj"]}
-        ];
+    let astronautNames      = chartData.map(d => d.name);
+    let timeSinceLastMission = chartData.map(d => d.timeSince);
 
-        let crews = [];
-        for (let i = 0; i < astronauts.length; i++) {
-            let astro = astronauts[i];
-            let new_astro = new Astronaut(astro.name, astro.uid);
-            crews.push(new_astro); // Add new astronaut to crews
-        }
+    let data = [{
+        type: 'bar',
+        x: timeSinceLastMission,
+        y: astronautNames,
+        orientation: 'h',
+        marker: {
+            color: timeSinceLastMission,
+            colorscale: [
+                [0,    'rgb(166,206,227)'],
+                [0.25, 'rgb(31,120,180)'],
+                [0.45, 'rgb(178,223,138)'],
+                [0.65, 'rgb(51,160,44)'],
+                [0.85, 'rgb(251,154,153)'],
+                [1,    'rgb(227,26,28)']
+            ],
+            cmin: 0,
+            cmax: Math.max(...timeSinceLastMission)
+        },
+        text: timeSinceLastMission.map(t => t.toFixed(2) + '年'),
+        textposition: 'auto',
+        hoverinfo: 'text'
+    }];
 
-        // Initialize Mission Instances
-        let missions = [];
-        for (let i = 0; i < crew_missions.length; i++) {
-            let szm = new Mission(crew_missions[i].name, crew_missions[i].start, crew_missions[i].end, crew_missions[i].crew);
-            missions.push(szm);
-        }
+    let layout = {
+        title: '距离上一次任务时间(年)',
+        xaxis: { title: '距离上一次任务时间(年)' },
+        yaxis: { title: '航天员' },
+        height: 800,
+        plot_bgcolor:  'black',
+        paper_bgcolor: 'black',
+        font: { color: 'white' }
+    };
 
-        // Calculate time since last mission for each astronaut
-        let astronautNames = [];
-        let timeSinceLastMission = [];
-        for (let i = 0; i < crews.length; i++) {
-            let astronaut = crews[i];
-            let timeSince = astronaut.timeSinceLastMission() / 365.25;  // Convert to years
-            astronautNames.push(astronaut.name);
-            timeSinceLastMission.push(timeSince);
-        }
-
-        // Sort astronauts by time since last mission in descending order
-        let sortedData = astronautNames
-            .map((name, index) => ({ name, time: timeSinceLastMission[index] }))
-            .sort((a, b) => b.time - a.time);  // Sort descending by time
-
-        // Extract sorted names and times
-        astronautNames = sortedData.map(item => item.name);
-        timeSinceLastMission = sortedData.map(item => item.time);
-
-        // Plot the data using Plotly with the Viridis color scheme
-        let data = [{
-            type: 'bar',
-            x: timeSinceLastMission,
-            y: astronautNames,
-            orientation: 'h',
-            marker: {
-                color: timeSinceLastMission,
-                colorscale: [[0, 'rgb(166,206,227)'], [0.25, 'rgb(31,120,180)'], [0.45, 'rgb(178,223,138)'], [0.65, 'rgb(51,160,44)'], [0.85, 'rgb(251,154,153)'], [1, 'rgb(227,26,28)']], // Use the Viridis color scale
-                type: 'contour',
-                cmin: 0,
-                cmax: Math.max(...timeSinceLastMission)
-            },
-            text: timeSinceLastMission.map(time => time.toFixed(2) + '年'),  // Show years
-            textposition: 'auto',
-            hoverinfo: 'text'
-        }];
-
-        let layout = {
-            title: '距离上一次任务时间(年)',
-            xaxis: {
-                title: '距离上一次任务时间'  // Correct label to reflect years
-            },
-            yaxis: {
-                title: '航天员'
-            },
-            height: 800,
-            plot_bgcolor: 'black', // Set chart background color to match page
-            paper_bgcolor: 'black', // Set paper background color to match page
-            font: {
-                color: 'white' // Set font color to white for better visibility
-            }
-        };
-
-        Plotly.newPlot('bar-chart', data, layout);
-    </script>
+    Plotly.newPlot('bar-chart', data, layout);
+  </script>
 </body>
 </html>
