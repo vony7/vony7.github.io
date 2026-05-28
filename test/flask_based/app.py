@@ -506,6 +506,42 @@ def mission_detail(mid):
 @app.route("/css-missions/")
 def css_mission_list():
     return mission_list() # Re-use generic list but could filter if needed
+@app.route("/css-missions/docking")
+def css_docking_sim():
+    conn = sqlite3.connect("astronauts.db")
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+
+    sql = """
+        SELECT s.name, s.type, p.axis_code
+        FROM docking_log log
+        JOIN spacecrafts s ON log.spacecraft_id = s.id
+        JOIN station_ports p ON log.port_id = p.id
+        WHERE log.undock_time IS NULL
+    """
+    cursor.execute(sql)
+    current_dockings = cursor.fetchall()
+    conn.close()
+
+    # Map for the Template
+    ports = {
+        "forward": None,
+        "aft": None,
+        "nadir": None,
+        "left": None,  # New (+Y)
+        "right": None  # New (-Y)
+    }
+
+    for row in current_dockings:
+        ship_data = {"name": row['name'], "type": row['type']}
+        
+        if row['axis_code'] == '+X':   ports['forward'] = ship_data
+        elif row['axis_code'] == '-X': ports['aft'] = ship_data
+        elif row['axis_code'] == '-Z': ports['nadir'] = ship_data
+        elif row['axis_code'] == '+Y': ports['left'] = ship_data   # Mengtian
+        elif row['axis_code'] == '-Y': ports['right'] = ship_data  # Wentian
+
+    return render_template("docking_diagram.html", ports=ports)
 
 # -------------------- Charts & Visualizations --------------------
 @app.route("/astronauts/chart/cumulative")
@@ -794,6 +830,37 @@ def edit_mission(mid):
     conn.close()
     return render_template("admin_mission_edit.html", mission=mission, all_astronauts=all_astronauts,
                          launch_crew=launch_crew, land_crew=land_crew, is_same_crew=is_same_crew)
+    
+@app.route("/admin/mission/delete/<mid>", methods=["POST"])
+@auth.login_required
+def delete_mission(mid):
+    conn = sqlite3.connect("astronauts.db")
+    try:
+        cursor = conn.cursor()
+        
+        # 1. Get the internal ID (primary key)
+        cursor.execute("SELECT id FROM missions WHERE mid = ?", (mid,))
+        row = cursor.fetchone()
+        
+        if row:
+            mission_id = row[0]
+            
+            # 2. Delete linked crew records first (Clean up foreign keys)
+            cursor.execute("DELETE FROM mission_crew WHERE mission_id = ?", (mission_id,))
+            
+            # 3. Delete the mission itself
+            cursor.execute("DELETE FROM missions WHERE id = ?", (mission_id,))
+            
+            conn.commit()
+            
+    except Exception as e:
+        conn.rollback()
+        return f"Error deleting mission: {e}", 500
+    finally:
+        conn.close()
+        
+    return redirect(url_for('admin_mission_list'))
+
 
 if __name__ == "__main__":
     app.run(debug=True)

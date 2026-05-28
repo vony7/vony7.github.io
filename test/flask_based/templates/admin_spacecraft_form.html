@@ -1,0 +1,27 @@
+{% extends 'base.html' %}
+{% block content %}
+<h1>{{ 'Edit' if spacecraft else 'Add' }} Spacecraft</h1>
+
+<form method="POST" style="max_width: 500px;">
+    <div class="form-group">
+        <label>Name (e.g. Shenzhou-21)</label>
+        <input type="text" name="name" value="{{ spacecraft.name if spacecraft else '' }}" required class="form-control">
+    </div>
+    
+    <div class="form-group">
+        <label>Serial Number (Optional, e.g. Y19)</label>
+        <input type="text" name="serial" value="{{ spacecraft.serial_number if spacecraft else '' }}" class="form-control">
+    </div>
+    
+    <div class="form-group">
+        <label>Type</label>
+        <select name="type" class="form-control">
+            <option value="载人" {% if spacecraft and spacecraft.type == '载人' %}selected{% endif %}>载人 (Manned)</option>
+            <option value="货运" {% if spacecraft and spacecraft.type == '货运' %}selected{% endif %}>货运 (Cargo)</option>
+            <option value="舱段" {% if spacecraft and spacecraft.type == '舱段' %}selected{% endif %}>舱段 (Station Module)</option>
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-add">Save Spacecraft</button>
+</form>
+{% endblock %}

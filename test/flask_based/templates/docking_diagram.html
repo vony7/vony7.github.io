@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <title>中国空间站组合体视图 (CSS Orthographic Views)</title>
@@ -10,8 +11,8 @@
             --lab-color: #f39c12;
             --manned-color: #e74c3c;
             --cargo-color: #3498db;
-            --empty-color: rgba(255,255,255,0.05);
-            --border-color: rgba(255,255,255,0.2);
+            --empty-color: rgba(255, 255, 255, 0.05);
+            --border-color: rgba(255, 255, 255, 0.2);
         }
 
         body {
@@ -23,10 +24,25 @@
             margin: 0;
         }
 
-        .nav { margin-bottom: 20px; }
-        .nav a { color: #4ecca3; text-decoration: none; margin: 0 15px; font-weight: bold; }
-        h1 { margin-bottom: 5px; }
-        .subtitle { color: #aaa; margin-bottom: 40px; }
+        .nav {
+            margin-bottom: 20px;
+        }
+
+        .nav a {
+            color: #4ecca3;
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: bold;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #aaa;
+            margin-bottom: 40px;
+        }
 
         .views-container {
             display: flex;
@@ -38,11 +54,12 @@
         }
 
         .view-panel {
-            background: rgba(0,0,0,0.2);
+            background: rgba(0, 0, 0, 0.2);
             padding: 20px;
             border-radius: 15px;
             border: 1px solid var(--border-color);
         }
+
         .view-title {
             color: #4ecca3;
             border-bottom: 2px solid #4ecca3;
@@ -63,13 +80,39 @@
             transition: all 0.3s ease;
             position: relative;
         }
-        .module small { font-weight: normal; opacity: 0.8; font-size: 0.8em; }
 
-        .core { background-color: var(--core-color); z-index: 2; box-shadow: 0 0 20px rgba(230, 126, 34, 0.3); }
-        .lab  { background-color: var(--lab-color); }
-        .shenzhou { background-color: var(--manned-color); border: 2px solid #c0392b; animation: pulse-red 4s infinite; }
-        .tianzhou { background-color: var(--cargo-color); border: 2px solid #2980b9; }
-        .empty { background-color: var(--empty-color); border: 2px dashed var(--border-color); color: #777; }
+        .module small {
+            font-weight: normal;
+            opacity: 0.8;
+            font-size: 0.8em;
+        }
+
+        .core {
+            background-color: var(--core-color);
+            z-index: 2;
+            box-shadow: 0 0 20px rgba(230, 126, 34, 0.3);
+        }
+
+        .lab {
+            background-color: var(--lab-color);
+        }
+
+        .shenzhou {
+            background-color: var(--manned-color);
+            border: 2px solid #c0392b;
+            animation: pulse-red 4s infinite;
+        }
+
+        .tianzhou {
+            background-color: var(--cargo-color);
+            border: 2px solid #2980b9;
+        }
+
+        .empty {
+            background-color: var(--empty-color);
+            border: 2px dashed var(--border-color);
+            color: #777;
+        }
 
         /* --- TOP VIEW --- */
         .top-view-grid {
@@ -78,48 +121,116 @@
             grid-template-rows: 100px 160px 100px;
             gap: 5px;
         }
-        .tv-fwd   { grid-column: 2; grid-row: 1; }
-        .tv-core  { grid-column: 2; grid-row: 2; }
-        .tv-left  { grid-column: 1; grid-row: 2; margin-right: -5px; }
-        .tv-right { grid-column: 3; grid-row: 2; margin-left: -5px; }
-        .tv-aft   { grid-column: 2; grid-row: 3; }
-        
+
+        .tv-fwd {
+            grid-column: 2;
+            grid-row: 1;
+        }
+
+        .tv-core {
+            grid-column: 2;
+            grid-row: 2;
+        }
+
+        .tv-left {
+            grid-column: 1;
+            grid-row: 2;
+            margin-right: -5px;
+        }
+
+        .tv-right {
+            grid-column: 3;
+            grid-row: 2;
+            margin-left: -5px;
+        }
+
+        .tv-aft {
+            grid-column: 2;
+            grid-row: 3;
+        }
+
         .nadir-indicator {
-            position: absolute; bottom: 5px; font-size: 0.7em; background: rgba(0,0,0,0.3); padding: 2px 5px; border-radius: 4px;
+            position: absolute;
+            bottom: 5px;
+            font-size: 0.7em;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 2px 5px;
+            border-radius: 4px;
         }
 
         /* --- SIDE VIEW (UPDATED: Removed Zenith Row) --- */
         .side-view-grid {
             display: grid;
             /* Cols: Fwd - Core - Aft */
-            grid-template-columns: 100px 200px 100px; 
+            grid-template-columns: 100px 200px 100px;
             /* Rows: Core Axis - Nadir */
-            grid-template-rows: 100px 120px; 
+            grid-template-rows: 100px 120px;
             gap: 5px;
             align-items: center;
-            margin-top: 40px; /* Add some space at top since Zenith is gone */
+            margin-top: 40px;
+            /* Add some space at top since Zenith is gone */
         }
+
         /* All main modules are now in row 1 */
-        .sv-fwd    { grid-column: 1; grid-row: 1; height: 80%; }
-        .sv-core   { grid-column: 2; grid-row: 1; height: 100%; }
-        .sv-aft    { grid-column: 3; grid-row: 1; height: 80%; }
+        .sv-fwd {
+            grid-column: 1;
+            grid-row: 1;
+            height: 80%;
+        }
+
+        .sv-core {
+            grid-column: 2;
+            grid-row: 1;
+            height: 100%;
+        }
+
+        .sv-aft {
+            grid-column: 3;
+            grid-row: 1;
+            height: 80%;
+        }
+
         /* Nadir is row 2 */
-        .sv-nadir  { grid-column: 2; grid-row: 2; justify-self: center; width: 80%; height: 100%; }
+        .sv-nadir {
+            grid-column: 2;
+            grid-row: 2;
+            justify-self: center;
+            width: 80%;
+            height: 100%;
+        }
 
         .lab-connector {
-            position: absolute; width: 20px; height: 20px; background: var(--lab-color);
-            border-radius: 50%; border: 2px solid #1a1a2e;
-            top: 50%; left: 50%; transform: translate(-50%, -50%);
-            text-align: center; line-height: 20px; font-size: 0.6em;
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: var(--lab-color);
+            border-radius: 50%;
+            border: 2px solid #1a1a2e;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            line-height: 20px;
+            font-size: 0.6em;
         }
 
-        @keyframes pulse-red { 0%, 100% { box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4); } 50% { box-shadow: 0 0 0 10px rgba(231, 76, 60, 0); } }
+        @keyframes pulse-red {
 
+            0%,
+            100% {
+                box-shadow: 0 0 0 0 rgba(231, 76, 60, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 0 0 10px rgba(231, 76, 60, 0);
+            }
+        }
     </style>
 </head>
+
 <body>
     <div class="nav">
-        <a href="/">🏠 首页 (Home)</a> | 
+        <a href="/">🏠 首页 (Home)</a> |
         <a href="/css-missions/">🚀 任务列表 (Missions)</a>
     </div>
 
@@ -127,26 +238,41 @@
     <div class="subtitle">CSS Current Configuration - Orthographic Views</div>
 
     <div class="views-container">
-        
+
         <div class="view-panel">
             <h3 class="view-title">俯视图 (Top View / +Z axis)</h3>
             <div class="top-view-grid">
-                <div class="module tv-fwd {% if ports.forward and ports.forward.type == '载人' %}shenzhou{% elif ports.forward %}tianzhou{% else %}empty{% endif %}">
+                <div
+                    class="module tv-fwd {% if ports.forward and ports.forward.type == '载人' %}shenzhou{% elif ports.forward %}tianzhou{% else %}empty{% endif %}">
                     {% if ports.forward %}
-                        {{ ports.forward.name }}<br><small>前向 (Fwd)</small>
+                    {{ ports.forward.name }}<br><small>前向 (Fwd)</small>
                     {% else %}前向空闲<br><small>Fwd Empty</small>{% endif %}
                 </div>
-                <div class="module tv-left lab">梦天实验舱<br><small>Mengtian</small></div>
-                <div class="module tv-right lab">问天实验舱<br><small>Wentian</small></div>
+                <div class="module tv-left {% if ports.left %}lab{% else %}empty{% endif %}">
+                    {% if ports.left %}
+                    {{ ports.left.name }}<br><small>Left (Port)</small>
+                    {% else %}
+                    Empty<br><small>Reserved</small>
+                    {% endif %}
+                </div>
+
+                <div class="module tv-right {% if ports.right %}lab{% else %}empty{% endif %}">
+                    {% if ports.right %}
+                    {{ ports.right.name }}<br><small>Right (Stbd)</small>
+                    {% else %}
+                    Empty<br><small>Reserved</small>
+                    {% endif %}
+                </div>
                 <div class="module tv-core core">
                     天和核心舱<br><small>Tianhe Core</small>
                     {% if ports.nadir %}
                     <div class="nadir-indicator">⬇ {{ ports.nadir.name }} 在下方</div>
                     {% endif %}
                 </div>
-                <div class="module tv-aft {% if ports.aft and ports.aft.type == '载人' %}shenzhou{% elif ports.aft %}tianzhou{% else %}empty{% endif %}">
+                <div
+                    class="module tv-aft {% if ports.aft and ports.aft.type == '载人' %}shenzhou{% elif ports.aft %}tianzhou{% else %}empty{% endif %}">
                     {% if ports.aft %}
-                        {{ ports.aft.name }}<br><small>后向 (Aft)</small>
+                    {{ ports.aft.name }}<br><small>后向 (Aft)</small>
                     {% else %}后向空闲<br><small>Aft Empty</small>{% endif %}
                 </div>
             </div>
@@ -155,19 +281,23 @@
         <div class="view-panel">
             <h3 class="view-title">侧视图 (Side View / +Y axis)</h3>
             <div class="side-view-grid">
-                <div class="module sv-fwd {% if ports.forward and ports.forward.type == '载人' %}shenzhou{% elif ports.forward %}tianzhou{% else %}empty{% endif %}">
+                <div
+                    class="module sv-fwd {% if ports.forward and ports.forward.type == '载人' %}shenzhou{% elif ports.forward %}tianzhou{% else %}empty{% endif %}">
                     {% if ports.forward %}{{ ports.forward.name }}<br><small>前向</small>{% else %}空闲{% endif %}
                 </div>
                 <div class="module sv-core core">
                     天和
                     <div class="lab-connector"></div>
                 </div>
-                <div class="module sv-aft {% if ports.aft and ports.aft.type == '载人' %}shenzhou{% elif ports.aft %}tianzhou{% else %}empty{% endif %}">
+                <div
+                    class="module sv-aft {% if ports.aft and ports.aft.type == '载人' %}shenzhou{% elif ports.aft %}tianzhou{% else %}empty{% endif %}">
                     {% if ports.aft %}{{ ports.aft.name }}<br><small>后向</small>{% else %}空闲{% endif %}
                 </div>
 
-                <div class="module sv-nadir {% if ports.nadir and ports.nadir.type == '载人' %}shenzhou{% elif ports.nadir %}tianzhou{% else %}empty{% endif %}">
-                    {% if ports.nadir %}{{ ports.nadir.name }}<br><small>径向 (Nadir)</small>{% else %}径向空闲<br><small>Nadir Empty</small>{% endif %}
+                <div
+                    class="module sv-nadir {% if ports.nadir and ports.nadir.type == '载人' %}shenzhou{% elif ports.nadir %}tianzhou{% else %}empty{% endif %}">
+                    {% if ports.nadir %}{{ ports.nadir.name }}<br><small>径向 (Nadir)</small>{% else
+                    %}径向空闲<br><small>Nadir Empty</small>{% endif %}
                 </div>
             </div>
         </div>
@@ -179,4 +309,5 @@
     </div>
 
 </body>
+
 </html>

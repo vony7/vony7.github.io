@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<style>
+    body {
+        background-color: #1a1a1d; /* Deep space dark grey */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        font-family: 'Segoe UI', sans-serif;
+        color: #ddd;
+    }
+
+    /* --- The Assembly Stage --- */
+    .assembly-stage {
+        position: relative;
+        width: 1000px;
+        height: 700px;
+        border: 1px solid #333;
+        background: radial-gradient(circle at center, #2b2b30 0%, #000 100%);
+        overflow: hidden;
+        margin-top: 20px;
+    }
+
+    /* --- Common Class for all parts --- */
+    .component {
+        position: absolute;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        /* Debug border - remove this once your images are loaded */
+        /* border: 1px dashed rgba(255,255,255,0.3); */
+    }
+    
+    .component img {
+        width: 100%;
+        height: auto;
+        display: block;
+        /* Drop shadow to give depth to the assembly */
+        filter: drop-shadow(5px 5px 10px rgba(0,0,0,0.8));
+    }
+
+    /* --- 1. THE STATION BASE (Fixed) --- */
+    
+    /* The Core (Tianhe) - Vertical */
+    .core-module {
+        width: 140px; 
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%); /* Perfectly Centered */
+        z-index: 10; /* Sits on top of the wings */
+    }
+
+    /* Left Lab (Wentian) - Horizontal */
+    .lab-left {
+        width: 350px; /* Wide because of solar panels */
+        top: 52%;     /* Slight adjustment to align with core hub */
+        right: 50%;   /* Anchored to center */
+        margin-right: -40px; /* Overlap slightly with core */
+        z-index: 5;   /* Behind core */
+    }
+
+    /* Right Lab (Mengtian) - Horizontal */
+    .lab-right {
+        width: 350px;
+        top: 52%;
+        left: 50%;
+        margin-left: -40px; /* Overlap slightly with core */
+        z-index: 5;
+    }
+
+    /* --- 2. THE VISITING VEHICLES (Dynamic) --- */
+    
+    .visiting-vehicle {
+        width: 80px;
+        z-index: 20; /* In front of everything */
+        opacity: 0;  /* Hidden by default */
+        transform: scale(0.8); /* Start smaller (distance) */
+    }
+
+    /* Active state for docking */
+    .visiting-vehicle.docked {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    /* Position: Forward Port (Center Hub) */
+    #ship-forward {
+        top: 55%; 
+        left: 50%;
+        margin-left: -40px; /* Center the ship width relative to port */
+        transform: translate(0, 50px); /* Start 'undocked' position */
+    }
+    #ship-forward.docked {
+        transform: translate(0, 0); /* Slide into place */
+    }
+
+    /* Position: Nadir Port (Bottom) */
+    #ship-nadir {
+        top: 65%; 
+        left: 50%;
+        margin-left: -40px;
+        transform: translate(0, 100px); /* Start far below */
+    }
+    #ship-nadir.docked {
+        transform: translate(0, 0); /* Slide up */
+    }
+    
+    /* Position: Radial/Top Port (For variety) */
+    #ship-zenith {
+        top: 25%;
+        left: 50%;
+        margin-left: -40px;
+        transform: rotate(180deg) translate(0, 100px);
+    }
+    #ship-zenith.docked {
+        transform: rotate(180deg) translate(0, 0);
+    }
+
+    /* --- Controls UI --- */
+    .controls {
+        display: flex;
+        gap: 20px;
+        margin-top: 15px;
+        padding: 15px;
+        background: #222;
+        border-radius: 8px;
+    }
+    select { padding: 8px; background: #333; color: white; border: 1px solid #555; }
+
+</style>
+</head>
+<body>
+
+    <h2>Tiangong Station Configurator</h2>
+
+    <div class="assembly-stage">
+        
+        <div class="component lab-left">
+            <img src="https://placehold.co/350x120/333/orange?text=Wentian+Lab+(Left)" alt="Left Lab">
+        </div>
+
+        <div class="component lab-right">
+            <img src="https://placehold.co/350x120/333/orange?text=Mengtian+Lab+(Right)" alt="Right Lab">
+        </div>
+
+        <div class="component core-module">
+            <img src="https://placehold.co/140x250/ccc/333?text=Tianhe+Core" alt="Core Module">
+        </div>
+
+
+        <div class="component visiting-vehicle" id="ship-forward">
+            <img id="img-forward" src="" alt="">
+        </div>
+
+        <div class="component visiting-vehicle" id="ship-nadir">
+             <img id="img-nadir" src="" alt="">
+        </div>
+
+    </div>
+
+    <div class="controls">
+        <div>
+            <label>Forward Port</label><br>
+            <select onchange="dockShip('forward', this.value)">
+                <option value="">(Empty)</option>
+                <option value="shenzhou">Shenzhou (Manned)</option>
+                <option value="tianzhou">Tianzhou (Cargo)</option>
+            </select>
+        </div>
+        <div>
+            <label>Nadir Port</label><br>
+            <select onchange="dockShip('nadir', this.value)">
+                <option value="">(Empty)</option>
+                <option value="shenzhou">Shenzhou (Manned)</option>
+            </select>
+        </div>
+    </div>
+
+<script>
+    // Assuming you save your cropped images as:
+    // static/images/shenzhou.png
+    // static/images/tianzhou.png
+    
+    const SHIP_ASSETS = {
+        'shenzhou': 'https://placehold.co/80x120/white/333?text=Shenzhou', // Replace with real path
+        'tianzhou': 'https://placehold.co/80x120/gray/333?text=Tianzhou'   // Replace with real path
+    };
+
+    function dockShip(port, type) {
+        const container = document.getElementById(`ship-${port}`);
+        const img = document.getElementById(`img-${port}`);
+
+        if (type === "") {
+            // Undock
+            container.classList.remove('docked');
+            // Slight delay before clearing src to allow transition out
+            setTimeout(() => { if(!container.classList.contains('docked')) img.src = ""; }, 500);
+        } else {
+            // Dock
+            img.src = SHIP_ASSETS[type];
+            // Small timeout to ensure image loads before sliding in
+            setTimeout(() => { container.classList.add('docked'); }, 50);
+        }
+    }
+</script>
+
+</body>
+</html>
